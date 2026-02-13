@@ -9,8 +9,8 @@ function asBuf32(key) {
   return buf;
 }
 
-function makeRatifiedMarker(concernKey, jobKey, orgKey, attemptToken) {
-  return `rat/${idEncoding.encode(asBuf32(concernKey))}/${idEncoding.encode(asBuf32(jobKey))}/${idEncoding.encode(asBuf32(orgKey))}/${idEncoding.encode(asBuf32(attemptToken))}`;
+function makeRatifiedMarker(concernKey, ratifierKey, jobKey, orgKey, attemptToken) {
+  return `rat/${idEncoding.encode(asBuf32(concernKey))}/${idEncoding.encode(asBuf32(ratifierKey))}/${idEncoding.encode(asBuf32(jobKey))}/${idEncoding.encode(asBuf32(orgKey))}/${idEncoding.encode(asBuf32(attemptToken))}`;
 }
 
 function wrapProjectorCtx({ role, concernKey, strictState, projectorFns }) {
@@ -47,6 +47,7 @@ function createProjectorContextFactory({
   publishJobWork,
   publishJobRatification,
   rememberAccepted,
+  forgetAccepted,
   shouldCooldown,
   recordPublishError
 }) {
@@ -103,8 +104,10 @@ function createProjectorContextFactory({
       concernHex,
       concernBase,
       concernKey,
+      acceptedByConcern: dedupeState.acceptedByConcern,
       ratifiedByConcern: dedupeState.ratifiedByConcern,
       makeRatifiedMarker,
+      forgetAccepted: (concernHexInner, id) => forgetAccepted(dedupeState, concernHexInner, id),
       shouldCooldown: (concernHexInner, cooldownId) => shouldCooldown(dedupeState, concernHexInner, cooldownId),
       recordPublishError: (concernHexInner, cooldownId, message) => {
         recordPublishError(dedupeState, concernHexInner, cooldownId, message);

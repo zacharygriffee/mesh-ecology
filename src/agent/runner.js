@@ -32,6 +32,7 @@ import {
   createRunnerDedupeState,
   hydrateFromAgentState,
   rememberAccepted,
+  forgetAccepted,
   rememberRatified,
   recordPublishError,
   shouldCooldown,
@@ -141,6 +142,7 @@ async function createRunner({
     publishJobWork,
     publishJobRatification,
     rememberAccepted,
+    forgetAccepted,
     shouldCooldown,
     recordPublishError
   });
@@ -183,7 +185,7 @@ async function createRunner({
             .createReadStream({ valueEncoding: viewRatEncoding });
           for await (const { key: attemptKey, value } of attemptStream) {
             const attemptBuf = value?.ref?.a || attemptKey;
-            rememberRatified(dedupeState, concernHex, makeRatifiedMarker(concernKey, jobKey, organismKey, attemptBuf));
+            rememberRatified(dedupeState, concernHex, makeRatifiedMarker(concernKey, ratifierKey, jobKey, organismKey, attemptBuf));
           }
         }
       }

@@ -26,6 +26,12 @@ function rememberAccepted(dedupeState, concernHex, id) {
   dedupeState.acceptedByConcern.get(concernHex).add(id);
 }
 
+function forgetAccepted(dedupeState, concernHex, id) {
+  const set = dedupeState.acceptedByConcern.get(concernHex);
+  if (!set) return;
+  set.delete(id);
+}
+
 function rememberRatified(dedupeState, concernHex, marker) {
   if (!dedupeState.ratifiedByConcern.has(concernHex)) dedupeState.ratifiedByConcern.set(concernHex, new Set());
   dedupeState.ratifiedByConcern.get(concernHex).add(marker);
@@ -96,6 +102,7 @@ export {
   createRunnerDedupeState,
   hydrateFromAgentState,
   rememberAccepted,
+  forgetAccepted,
   rememberRatified,
   recordPublishError,
   shouldCooldown,

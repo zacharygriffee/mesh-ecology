@@ -141,20 +141,22 @@ test("lab-ecology.multi-ratifier.observe-same-pub.two-transport", { timeout: bud
           }
           if (!acceptedPub) throw semanticError("orgA pub was not accepted");
 
-          await publishJobRatification(
-            ratABase,
-            jobKey,
-            orgAKey,
-            attemptTokenA,
-            1,
-            1,
-            "cap/lab-ecology-rat-a",
-            { t: "result", k: jobKey, a: attemptTokenA },
-            "ratifier-a"
-          );
-
           let acceptedRatA = null;
           for (let i = 0; i < 120; i++) {
+            // Retry bounded RAT proposal attempts until accepted leaf materializes.
+            if (i === 0 || i % 12 === 0) {
+              await publishJobRatification(
+                ratABase,
+                jobKey,
+                orgAKey,
+                attemptTokenA,
+                1,
+                1,
+                "cap/lab-ecology-rat-a",
+                { t: "result", k: jobKey, a: attemptTokenA },
+                "ratifier-a"
+              );
+            }
             await settleRound({
               swarms: [hostSwarm, followerSwarm, orgASwarm, ratASwarm, ratBSwarm],
               bases: [hostBase, followerBase, orgABase, ratABase, ratBBase],
@@ -166,20 +168,22 @@ test("lab-ecology.multi-ratifier.observe-same-pub.two-transport", { timeout: bud
 
           if (!acceptedRatA) throw semanticError("ratifierA rat was not accepted");
 
-          await publishJobRatification(
-            ratBBase,
-            jobKey,
-            orgAKey,
-            attemptTokenA,
-            1,
-            1,
-            "cap/lab-ecology-rat-b",
-            { t: "result", k: jobKey, a: attemptTokenA },
-            "ratifier-b"
-          );
-
           let acceptedRatB = null;
           for (let i = 0; i < 120; i++) {
+            // Retry bounded RAT proposal attempts until accepted leaf materializes.
+            if (i === 0 || i % 12 === 0) {
+              await publishJobRatification(
+                ratBBase,
+                jobKey,
+                orgAKey,
+                attemptTokenA,
+                1,
+                1,
+                "cap/lab-ecology-rat-b",
+                { t: "result", k: jobKey, a: attemptTokenA },
+                "ratifier-b"
+              );
+            }
             await settleRound({
               swarms: [hostSwarm, followerSwarm, orgASwarm, ratASwarm, ratBSwarm],
               bases: [hostBase, followerBase, orgABase, ratABase, ratBBase],

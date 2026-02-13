@@ -243,7 +243,8 @@ test("phase4 reject path: invalid RAT proposal is dropped by concern apply", asy
       attemptToken,
       orgStore,
       ratStore,
-      orgKey
+      orgKey,
+      ratifierRunnerKey
     } = env;
 
     let pubSent = false;
@@ -330,6 +331,122 @@ test("phase4 reject path: invalid RAT proposal is dropped by concern apply", asy
   }
 });
 
+test("phase4 retry path: ratifier retries pub after initial invalid RAT attempt", async (t) => {
+  let env;
+  let orgRunner;
+  let ratRunner;
+
+  try {
+    env = await setupPhase4Topology();
+    const {
+      swarmHost,
+      swarmOrg,
+      swarmRat,
+      discKeyZ,
+      concernHost,
+      jobKey,
+      attemptToken,
+      orgStore,
+      ratStore,
+      orgKey,
+      ratifierRunnerKey
+    } = env;
+
+    let pubSent = false;
+    orgRunner = await createRunner({
+      role: "org",
+      corestore: orgStore,
+      swarm: swarmOrg,
+      discoveryKeys: [discKeyZ],
+      warmN: 1,
+      warmupBudget: { maxTicks: 0, maxMs: 0, minViewReadable: true },
+      projector: async (ctx) => {
+        if (pubSent) return;
+        let hasJob = false;
+        for await (const j of ctx.jobs()) {
+          if (b4a.equals(j.key, jobKey)) {
+            hasJob = true;
+            break;
+          }
+        }
+        if (!hasJob) return;
+        pubSent = true;
+        await ctx.publish.publishPub({
+          cap: "cap/pub",
+          ref: { t: "result", k: jobKey, a: attemptToken }
+        });
+      }
+    });
+
+    const invalidOrgKey = crypto.randomBytes(32);
+    let ratAttempts = 0;
+    let firstAttempt = true;
+    ratRunner = await createRunner({
+      role: "ratifier",
+      corestore: ratStore,
+      swarm: swarmRat,
+      discoveryKeys: [discKeyZ],
+      warmN: 1,
+      warmupBudget: { maxTicks: 0, maxMs: 0, minViewReadable: true },
+      projector: async (ctx) => {
+        for await (const pub of ctx.pubs()) {
+          ratAttempts += 1;
+          const projectedOrgKey = firstAttempt ? invalidOrgKey : pub.value.oK;
+          firstAttempt = false;
+          await ctx.publish.publishRat({
+            jobKey: pub.jobKey,
+            orgKey: projectedOrgKey,
+            attemptToken: pub.attempt,
+            determination: 1,
+            tier: 1,
+            cap: "cap/rat",
+            ref: pub.value.ref,
+            note: "retry-after-invalid"
+          });
+        }
+      }
+    });
+
+    const hostPublishView = getPublishView(concernHost.base);
+    const hostRatView = getRatView(concernHost.base);
+    let acceptedPub = null;
+    let acceptedRat = null;
+    for (let i = 0; i < 60; i++) {
+      await tickBoth(orgRunner, ratRunner, swarmHost, swarmOrg, swarmRat, 1);
+      await concernHost.base.update({ wait: true }).catch(() => {});
+      acceptedPub = await hostPublishView
+        .sub(jobKey)
+        .sub(orgKey)
+        .get(attemptToken, { valueEncoding: hostPublishView.valueEncoding })
+        .catch(() => null);
+      acceptedRat = await hostRatView
+        .sub(jobKey)
+        .sub(ratifierRunnerKey)
+        .sub(orgKey)
+        .get(attemptToken, { valueEncoding: hostRatView.valueEncoding })
+        .catch(() => null);
+      if (acceptedPub && acceptedRat) break;
+    }
+
+    t.ok(acceptedPub, "pub accepted in derived view");
+    t.ok(acceptedRat, "rat accepted after retry");
+    t.ok(ratAttempts >= 2, "ratifier retried after initial invalid attempt");
+  } finally {
+    await closeMaybe(ratRunner);
+    await closeMaybe(orgRunner);
+    await closeMaybe(env?.ratStore);
+    await closeMaybe(env?.orgStore);
+    await closeMaybe(env?.concernHost?.base);
+    await closeMaybe(env?.concernHost?.store);
+    await closeMaybe(env?.disc);
+    await closeMaybe(env?.discStore);
+    await closeSwarm(env?.swarmOrg);
+    await closeSwarm(env?.swarmRat);
+    await closeSwarm(env?.swarmHost);
+    cleanupDirs(env?.discDir, env?.orgDir, env?.ratDir, env?.concernHost?.dir);
+  }
+});
+
 test("phase4 restart dedupe: no re-ratify after restart", async (t) => {
   let env;
   let orgRunner;
@@ -349,7 +466,8 @@ test("phase4 restart dedupe: no re-ratify after restart", async (t) => {
       attemptToken,
       orgStore,
       ratStore,
-      orgKey
+      orgKey,
+      ratifierRunnerKey
     } = env;
 
     let pubSent = false;
@@ -401,7 +519,7 @@ test("phase4 restart dedupe: no re-ratify after restart", async (t) => {
     ratRunner = null;
 
     const concernHex = concernHost.key.toString("hex");
-    const expectedMarker = `rat/${idEncoding.encode(b4a.from(concernHex, "hex"))}/${idEncoding.encode(jobKey)}/${idEncoding.encode(orgKey)}/${idEncoding.encode(attemptToken)}`;
+    const expectedMarker = `rat/${idEncoding.encode(b4a.from(concernHex, "hex"))}/${idEncoding.encode(ratifierRunnerKey)}/${idEncoding.encode(jobKey)}/${idEncoding.encode(orgKey)}/${idEncoding.encode(attemptToken)}`;
     agentState = await ensureAgentStateSurface(ratStore.namespace("ratifier-state"));
     const snapshot = await readAgentState(agentState);
     await closeMaybe(agentState);
