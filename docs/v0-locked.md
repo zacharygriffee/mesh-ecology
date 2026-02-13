@@ -1,0 +1,11 @@
+Mesh v0 Constitution (locked)
+
+- Discovery MUST remain advertising-only: it records concern/discovery pointers and MAY add writers; it MUST NOT assign work, schedule execution, or invoke projectors.
+- Concern MUST run on Autobase with optimistic intake; optimistic pub/rat writes MUST be acknowledged via `host.ackWriter` only after apply-time validation of job presence, uniqueness, and refs. Optimistic updates that fail validation MUST NOT be acknowledged or committed.
+- Organism and ratifier MUST be projector-driven helpers; they MAY propose work or ratifications via their handle APIs, but concern.apply remains the deciding authority. They MUST NOT assume authority beyond publishing proposals.
+- Corestore Isolation Rule: one `new Corestore(path)` per role process (organism runner, ratifier runner, discovery host, concern host). That role MAY open concern/discovery bases via `corestore.namespace(...)` within that single instance. A Corestore MUST NOT be shared across roles/identities, and multiple Corestore instances in the same role process are forbidden unless explicitly declared as a hard boundary.
+- Observational pass boundary: cached bases/views/Autobase objects MUST be scoped to a single observational pass (or keyed by a pass namespace). Reusing caches across passes is a violation because it permits hidden coupling and cache bleed between observations.
+- Violations include: (a) more than one Corestore instance inside one role process without explicit boundary justification; (b) sharing any Corestore instance across different roles/identities; (c) reusing pass-agnostic caches that allow cross-pass state bleed.
+- Rationale / Failure Modes: Per-concern/per-pass Corestore creation causes FD storms and churn; the rule keeps one Corestore per role to control FDs while still forbidding cross-role sharing. Cache bleed is the real risk, so pass-scoped caches or pass-specific namespaces MUST be used to keep observations independent.
+- Gas/cost/bonds/sponsorship concepts are NOT protocol-active here; concern.apply MUST NOT enforce costs or bonds unless an explicit directive and tests are added in a future, separate change.
+- No refactors or implicit behavioral changes are permitted under this locked spec unless explicitly directed.
