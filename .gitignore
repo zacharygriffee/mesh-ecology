@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local env / secrets
+.env
+.env.*
+!.env.example
+
+# Runtime state (corestore/autobase/hyperbee)
+store/
+store-*/
+tmp-*/
+tmp-host/
+tmp-runner/
+tmp-test-store*/
+temp/
+.cache/
+
+# Test/lab artifacts
+test/_artifacts/
+
+# IDE/editor
+.idea/
+.vscode/
+*.iml
+
+# Build/coverage
+coverage/
+.nyc_output/
+dist/
+build/
+*.tsbuildinfo
+
+# OS + scratch
+.DS_Store
+Thumbs.db
+mnt/
+material/
+material

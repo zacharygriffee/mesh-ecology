@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  unit-fast:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run deterministic suite (fake transport only)
+        run: LAB_REAL=0 npm test -- --runInBand
+
+  labs-network-strict:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ecology labs (real network, strict)
+        run: CI=1 node test/run-files.js test/labs/
+
+  ecology-smoke:
+    needs: [unit-fast]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Reset ecology smoke store
+        run: rm -rf ./store/ecology-smoke
+
+      - name: Run ecology orchestration smoke (real swarm, 20s)
+        run: |
+          ECO_DURATION_MS=20000 \
+          ECO_READY_MS=45000 \
+          ECO_STORE_ROOT=./store/ecology-smoke \
+          ECO_SEED=ci-smoke \
+          node scripts/run-ecology.js
