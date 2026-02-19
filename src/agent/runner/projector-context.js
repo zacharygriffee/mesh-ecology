@@ -57,9 +57,13 @@ function createProjectorContextFactory({
     concernHex,
     strictState,
     dedupeState,
-    jobView
+    jobView,
+    publishView,
+    ratView
   }) {
     const resolvedJobView = jobView ?? getJobView(concernBase);
+    const resolvedPublishView = publishView ?? getPublishView(concernBase);
+    const resolvedRatView = ratView ?? getRatView(concernBase);
 
     function pubs() {
       // Boundary: accepted PUB traversal and marker recording stay delegated to createPubsIterator.
@@ -68,7 +72,7 @@ function createProjectorContextFactory({
         concernHex,
         acceptedByConcern: dedupeState.acceptedByConcern,
         rememberAccepted: (concernHexInner, id) => rememberAccepted(dedupeState, concernHexInner, id),
-        getPublishView,
+        getPublishView: () => resolvedPublishView,
         viewPubEncoding
       });
     }
@@ -77,7 +81,7 @@ function createProjectorContextFactory({
       // Boundary: accepted RAT traversal and decode path stay delegated to createRatsIterator.
       return createRatsIterator({
         concernBase,
-        getRatView,
+        getRatView: () => resolvedRatView,
         viewRatEncoding
       });
     }

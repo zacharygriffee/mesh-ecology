@@ -3,6 +3,7 @@ import idEncoding from "hypercore-id-encoding";
 import { ensureAgentStateSurface, readAgentState, writeAgentState } from "./state.js";
 import { joinDiscovery, ensureDiscoveryReplication, scanDiscovery } from "./discovery-roam.js";
 import { createWarmsetManager, defaultOpenConcern } from "./warmset.js";
+import { normalizeWarmN } from "./config.js";
 import b4a from "b4a";
 
 // Shared shell: opens agent state, discovery, and warms concerns up to warmN.
@@ -27,7 +28,8 @@ async function createRunnerShell({ role, corestore, swarm, discoveryKeys = [], w
   }
 
   const openConcern = await defaultOpenConcern({ cs: corestore, swarm });
-  const warmset = createWarmsetManager({ warmN, openConcern });
+  const normalizedWarmN = normalizeWarmN(warmN);
+  const warmset = createWarmsetManager({ warmN: normalizedWarmN, openConcern });
 
   async function tick() {
     for (const d of discoveries) {

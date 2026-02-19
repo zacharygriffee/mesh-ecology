@@ -8,6 +8,9 @@ function createTick({
   warmset,
   warmupBudget,
   retryPolicy,
+  getStrictState,
+  getPublishView,
+  getRatView,
   getJobView,
   buildProjectorContext,
   projector,
@@ -43,15 +46,20 @@ function createTick({
       const concernBase = w.base;
       // refresh local view so pubs/jobs reflect latest optimistic/state updates
       await concernBase.update().catch(() => {});
+      const strictState = await getStrictState(concernBase, 1n).catch(() => null);
       const jobView = getJobView(concernBase);
+      const publishView = getPublishView(concernBase);
+      const ratView = getRatView(concernBase);
       await hydrateRatified(concernBase, concernHex, w.keyBuf);
       const ctx = buildProjectorContext({
         concernBase,
         concernKey: w.keyBuf,
         concernHex,
-        strictState: w.strictState,
+        strictState,
         dedupeState,
-        jobView
+        jobView,
+        publishView,
+        ratView
       });
 
       await projector(ctx);

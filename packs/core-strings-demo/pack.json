@@ -1,0 +1,5 @@
+{
+  "name": "core-strings-demo",
+  "organisms": ["core-strings-producer", "core-strings-consumer"],
+  "ratifiers": ["ratify-core-strings"]
+}

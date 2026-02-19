@@ -1,0 +1,5 @@
+{
+  "name": "starter-pack",
+  "organisms": ["pub-once", "pub-periodic", "worker-basic"],
+  "ratifiers": ["ratify-all", "ratify-keep"]
+}

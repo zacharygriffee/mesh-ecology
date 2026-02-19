@@ -1,16 +1,18 @@
 import b4a from "b4a";
 import idEncoding from "hypercore-id-encoding";
+import Hyperbee from "hyperbee";
 import { ensureAgentStateSurface, readAgentState } from "./state.js";
 import { ensureDiscoverySurface } from "../discovery.js";
 import { joinDiscovery, ensureDiscoveryReplication, scanDiscovery } from "./discovery-roam.js";
 import { createWarmsetManager, defaultOpenConcern } from "./warmset.js";
-import { normalizeWarmupBudget, normalizeRetryPolicy } from "./config.js";
+import { normalizeWarmN, normalizeWarmupBudget, normalizeRetryPolicy } from "./config.js";
 import {
   publishJobWork,
   publishJobRatification,
   getPublishView,
   getRatView,
   getJobView,
+  getStrictState,
   viewPubEncoding,
   viewRatEncoding
 } from "../concern.js";
@@ -98,6 +100,11 @@ async function createRunner({
   log = console
 }) {
   const agentState = await ensureAgentStateSurface(corestore.namespace(`${role}-state`));
+  const workflowStateBee = new Hyperbee(
+    corestore.namespace(`${role}-state`).get({ name: "dx-workflow-state" }),
+    { keyEncoding: "utf-8", valueEncoding: "json", extension: false }
+  );
+  await workflowStateBee.ready?.();
   const prior = (await readAgentState(agentState)) || { cursors: {}, warm: { meta: {} }, accepted: {}, ratified: {} };
   const projectorFn = projector ?? getDefaultProjector(role);
 
@@ -112,7 +119,8 @@ async function createRunner({
   }
 
   const openConcern = await defaultOpenConcern({ cs: corestore, swarm });
-  const warmset = createWarmsetManager({ warmN, openConcern });
+  const normalizedWarmN = normalizeWarmN(warmN);
+  const warmset = createWarmsetManager({ warmN: normalizedWarmN, openConcern });
   const budget = normalizeWarmupBudget(warmupBudget);
   const retry = normalizeRetryPolicy(retryPolicy);
 
@@ -207,6 +215,9 @@ async function createRunner({
     warmset,
     warmupBudget: budget,
     retryPolicy: retry,
+    getStrictState,
+    getPublishView,
+    getRatView,
     getJobView,
     buildProjectorContext,
     projector: projectorFn,
@@ -228,6 +239,7 @@ async function createRunner({
 
     await warmset.close();
     for (const { disc } of discoveries) await disc.close?.();
+    await workflowStateBee.close?.();
     await agentState.close?.();
   }
 
@@ -245,7 +257,15 @@ async function createRunner({
     return tick();
   }
 
-  return { tick, start, close, getStatus };
+  return {
+    tick,
+    start,
+    close,
+    getStatus,
+    // DX extension point: runner-local workflow state (work journal, cooldown hints, etc.).
+    // This is writable local state and is not concern-canonical protocol state.
+    stateBee: workflowStateBee
+  };
 }
 
 export { createRunner };

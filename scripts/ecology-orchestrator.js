@@ -1,7 +1,8 @@
 import crypto from "crypto";
 import path from "path";
-import { mkdir } from "fs/promises";
+import { mkdir, access, readFile } from "fs/promises";
 import { setTimeout as sleep } from "timers/promises";
+import { pathToFileURL } from "url";
 import Corestore from "corestore";
 import Hyperswarm from "hyperswarm";
 import Autobase from "autobase";
@@ -22,6 +23,7 @@ import {
   OP
 } from "../src/concern.js";
 import { createRunner } from "../src/agent/runner.js";
+import { createOrganismActor, createRatifierActor } from "../src/dx/index.js";
 import { waitForSwarmConnections, flushDiscovery } from "../src/util/waiters/swarm.js";
 import { waitForCorePeers } from "../src/util/waiters/core.js";
 
@@ -36,7 +38,13 @@ const DEFAULTS = {
   jobsPerConcern: 3,
   concerns: 2,
   orgs: 3,
-  storeRoot: "./store/ecology"
+  storeRoot: "./store/ecology",
+  defsEnabled: false,
+  defsDir: "",
+  defsPack: "",
+  packsDir: "",
+  organismNames: [],
+  ratifierNames: []
 };
 
 const ORG_LABELS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
@@ -61,7 +69,13 @@ function normalizeConfig(input = {}) {
     concerns: intOr(input.concerns, DEFAULTS.concerns, 1, 8),
     orgs: intOr(input.orgs, DEFAULTS.orgs, 1, 8),
     storeRoot: String(input.storeRoot || DEFAULTS.storeRoot),
-    seedHex: String(input.seedHex || "").trim()
+    seedHex: String(input.seedHex || "").trim(),
+    defsEnabled: boolOr(input.defsEnabled, DEFAULTS.defsEnabled),
+    defsDir: String(input.defsDir || DEFAULTS.defsDir || "").trim(),
+    defsPack: String(input.defsPack || input.packName || DEFAULTS.defsPack || "").trim(),
+    packsDir: String(input.packsDir || DEFAULTS.packsDir || "").trim(),
+    organismNames: listOr(input.organismNames || input.orgActorNames || DEFAULTS.organismNames),
+    ratifierNames: listOr(input.ratifierNames || input.ratActorNames || DEFAULTS.ratifierNames)
   };
 
   if (cfg.tickMaxMs < cfg.tickMinMs) {
@@ -83,6 +97,7 @@ function normalizeConfig(input = {}) {
   }
 
   cfg.storeRoot = path.resolve(cfg.storeRoot);
+  if (cfg.packsDir) cfg.packsDir = path.resolve(cfg.packsDir);
   return cfg;
 }
 
@@ -257,20 +272,48 @@ async function runEcologyOrchestrator(input = {}) {
 
     const discoveryKey = idEncoding.encode(discovery.key);
     const prng = createPrng(deriveSeed(cfg.seed, "scheduler"));
+    const defs = await maybeLoadEcologyDefinitions({ cfg, orgCount: cfg.orgs });
+    const selectedOrganismNames = defs?.selectedOrganisms || [];
+    const selectedRatifierNames = defs?.selectedRatifiers || [];
 
     // Per-organism projector state and deterministic attempt generation.
-    for (const actor of orgActors) {
-      const policy = actor.label === "C"
-        ? { minGapMs: 1600, maxGapMs: 3200, publishChance: 0.35 }
-        : { minGapMs: 500, maxGapMs: 1400, publishChance: 0.75 };
-      const attemptFactory = createAttemptTokenFactory(cfg.seed, `org-${actor.label}`);
-      actor.projector = createOrganismProjector({
-        label: actor.label,
-        policy,
-        runtime,
-        prng,
-        nextAttemptToken: attemptFactory
-      });
+    for (let i = 0; i < orgActors.length; i++) {
+      const actor = orgActors[i];
+      const selectedName = selectNameForIndex(selectedOrganismNames, i);
+      const definition = selectedName ? defs?.organisms?.get(selectedName) : null;
+
+      if (definition) {
+        actor.dx = createOrganismActor({
+          name: selectedName,
+          definition,
+          logger: console
+        });
+        actor.projector = async (ctx) => {
+          if (!runtime.publishEnabled) return;
+          await actor.dx.projector(ctx);
+        };
+      } else if (selectedName) {
+        console.warn(`[defs] missing organism definition '${selectedName}' for org-${actor.label}; using built-in projector`);
+      }
+
+      if (!actor.projector) {
+        const policy = actor.label === "C"
+          ? { minGapMs: 1600, maxGapMs: 3200, publishChance: 0.35 }
+          : { minGapMs: 500, maxGapMs: 1400, publishChance: 0.75 };
+        const attemptFactory = createAttemptTokenFactory(cfg.seed, `org-${actor.label}`);
+        actor.projector = createOrganismProjector({
+          label: actor.label,
+          policy,
+          runtime,
+          prng,
+          nextAttemptToken: attemptFactory
+        });
+      }
+
+      if (selectedName && definition) {
+        console.log(`[defs] org-${actor.label} -> ${selectedName}`);
+      }
+
       actor.runner = await createRunner({
         role: "org",
         corestore: actor.store,
@@ -280,22 +323,56 @@ async function runEcologyOrchestrator(input = {}) {
         warmupBudget: { maxTicks: 0, maxMs: 0, minViewReadable: true },
         projector: actor.projector
       });
+      actor.dx?.bind({ runner: actor.runner, stateBee: actor.runner.stateBee });
       resources.runnersOrg.push(actor.runner);
     }
 
     // RatA: default ratify-all. RatB: selective projector policy ("keep" only).
     const ratA = ratActors.find((x) => x.label === "A");
     const ratB = ratActors.find((x) => x.label === "B");
+    const ratifierSelectionProvided = Array.isArray(selectedRatifierNames) && selectedRatifierNames.length > 0;
+    const ratAName = selectedRatifierNames[0] || null;
+    const ratBName = selectedRatifierNames[1] || null;
+    const ratADefinition = ratAName ? defs?.ratifiers?.get(ratAName) : null;
+    const ratBDefinition = ratBName ? defs?.ratifiers?.get(ratBName) : null;
+
+    if (ratADefinition) {
+      ratA.dx = createRatifierActor({
+        name: ratAName,
+        definition: ratADefinition,
+        logger: console
+      });
+      console.log(`[defs] rat-A -> ${ratAName}`);
+    } else if (ratAName) {
+      console.warn(`[defs] missing ratifier definition '${ratAName}' for rat-A; using built-in behavior`);
+    }
     ratA.runner = await createRunner({
       role: "ratifier",
       corestore: ratA.store,
       swarm: ratA.swarm,
       discoveryKeys: [discoveryKey],
       warmN: cfg.concerns,
-      warmupBudget: { maxTicks: 0, maxMs: 0, minViewReadable: true }
+      warmupBudget: { maxTicks: 0, maxMs: 0, minViewReadable: true },
+      projector: ratA.dx
+        ? async (ctx) => {
+          if (!runtime.publishEnabled) return;
+          await ratA.dx.projector(ctx);
+        }
+        : undefined
     });
+    ratA.dx?.bind({ runner: ratA.runner, stateBee: ratA.runner.stateBee });
     resources.runnersRat.push(ratA.runner);
 
+    if (ratBDefinition) {
+      ratB.dx = createRatifierActor({
+        name: ratBName,
+        definition: ratBDefinition,
+        logger: console
+      });
+      console.log(`[defs] rat-B -> ${ratBName}`);
+    } else if (ratBName) {
+      console.warn(`[defs] missing ratifier definition '${ratBName}' for rat-B; using built-in behavior`);
+    }
     ratB.runner = await createRunner({
       role: "ratifier",
       corestore: ratB.store,
@@ -303,8 +380,16 @@ async function runEcologyOrchestrator(input = {}) {
       discoveryKeys: [discoveryKey],
       warmN: cfg.concerns,
       warmupBudget: { maxTicks: 0, maxMs: 0, minViewReadable: true },
-      projector: createSelectiveRatifierProjector("B")
+      projector: ratB.dx
+        ? async (ctx) => {
+          if (!runtime.publishEnabled) return;
+          await ratB.dx.projector(ctx);
+        }
+        : ratifierSelectionProvided
+          ? async function noopRatBProjector() {}
+          : createSelectiveRatifierProjector("B")
     });
+    ratB.dx?.bind({ runner: ratB.runner, stateBee: ratB.runner.stateBee });
     resources.runnersRat.push(ratB.runner);
 
     // Ratifier keys are concern-specific because each concern replica uses a distinct namespace.
@@ -653,6 +738,10 @@ async function waitForEcologyReadiness({
   }
 
   const detail = snapshotReadiness({ swarms, requiredCores, runners, requiredWarmCount: cfg.concerns });
+  if (detail.ok) {
+    console.log("[ready] reached readiness conditions at deadline boundary; continuing");
+    return;
+  }
   throw new Error(`readiness timeout after ${cfg.readyMs}ms; pulseUsed=${pulseUsed} detail=${JSON.stringify(detail)}`);
 }
 
@@ -945,6 +1034,195 @@ function createAttemptTokenFactory(seed, label) {
   };
 }
 
+async function maybeLoadEcologyDefinitions({ cfg, orgCount }) {
+  const enabled = Boolean(
+    cfg.defsEnabled ||
+    cfg.defsDir ||
+    cfg.defsPack ||
+    cfg.packsDir ||
+    (Array.isArray(cfg.organismNames) && cfg.organismNames.length > 0) ||
+    (Array.isArray(cfg.ratifierNames) && cfg.ratifierNames.length > 0)
+  );
+  if (!enabled) return null;
+
+  const { organismsDir, ratifiersDir } = resolveDefinitionDirs(cfg.defsDir);
+  const packsDir = resolvePacksDir({ packsDirRaw: cfg.packsDir, defsDirRaw: cfg.defsDir });
+  const pack = await loadPackMaybe({ packsDir, packName: cfg.defsPack });
+  const selectedOrganisms = chooseDefinitionNames({
+    explicit: cfg.organismNames,
+    fromPack: pack?.organisms,
+    fallback: buildDefaultOrganismSelection(orgCount)
+  });
+  const selectedRatifiers = chooseDefinitionNames({
+    explicit: cfg.ratifierNames,
+    fromPack: pack?.ratifiers,
+    fallback: ["ratify-all", "selective"]
+  });
+
+  const defs = {
+    organisms: new Map(),
+    ratifiers: new Map(),
+    selectedOrganisms,
+    selectedRatifiers,
+    packName: pack?.name || null
+  };
+
+  for (const name of uniqueList(selectedOrganisms)) {
+    const def = await loadDefinitionMaybe(resolveDefinitionFile(organismsDir, name));
+    if (def) defs.organisms.set(name, def);
+  }
+
+  for (const name of uniqueList(selectedRatifiers)) {
+    const def = await loadDefinitionMaybe(resolveDefinitionFile(ratifiersDir, name));
+    if (def) defs.ratifiers.set(name, def);
+  }
+
+  console.log(
+    `[defs] enabled organismsDir=${organismsDir} ratifiersDir=${ratifiersDir} packsDir=${packsDir} pack=${defs.packName || "none"} selectedOrg=${selectedOrganisms.join(",") || "none"} selectedRat=${selectedRatifiers.join(",") || "none"} loadedOrg=${Array.from(defs.organisms.keys()).join(",") || "none"} loadedRat=${Array.from(defs.ratifiers.keys()).join(",") || "none"}`
+  );
+
+  return defs;
+}
+
+function resolveDefinitionDirs(defsDirRaw) {
+  const baseDir = path.resolve(defsDirRaw || process.cwd());
+  const leaf = path.basename(baseDir);
+
+  if (leaf === "organisms") {
+    return {
+      organismsDir: baseDir,
+      ratifiersDir: path.resolve(baseDir, "..", "ratifiers")
+    };
+  }
+  if (leaf === "ratifiers") {
+    return {
+      organismsDir: path.resolve(baseDir, "..", "organisms"),
+      ratifiersDir: baseDir
+    };
+  }
+  return {
+    organismsDir: path.join(baseDir, "organisms"),
+    ratifiersDir: path.join(baseDir, "ratifiers")
+  };
+}
+
+function resolvePacksDir({ packsDirRaw, defsDirRaw }) {
+  if (packsDirRaw) return path.resolve(packsDirRaw);
+
+  const baseDir = path.resolve(defsDirRaw || process.cwd());
+  const leaf = path.basename(baseDir);
+  if (leaf === "organisms" || leaf === "ratifiers") {
+    return path.resolve(baseDir, "..", "packs");
+  }
+  return path.join(baseDir, "packs");
+}
+
+async function loadPackMaybe({ packsDir, packName }) {
+  const resolvedName = String(packName || "").trim();
+  if (!resolvedName) return null;
+
+  const filePath = path.join(packsDir, resolvedName, "pack.json");
+  let raw = "";
+  try {
+    raw = await readFile(filePath, "utf8");
+  } catch (err) {
+    if (err?.code === "ENOENT") {
+      throw new Error(`pack not found: ${resolvedName} (expected ${filePath})`);
+    }
+    throw err;
+  }
+
+  let parsed = null;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (err) {
+    throw new Error(`invalid pack JSON at ${filePath}: ${err?.message || err}`);
+  }
+
+  return {
+    name: String(parsed?.name || resolvedName).trim() || resolvedName,
+    organisms: normalizeNameList(parsed?.organisms),
+    ratifiers: normalizeNameList(parsed?.ratifiers)
+  };
+}
+
+function chooseDefinitionNames({ explicit, fromPack, fallback }) {
+  const explicitNames = normalizeNameList(explicit);
+  if (explicitNames.length > 0) return explicitNames;
+
+  const packNames = normalizeNameList(fromPack);
+  if (packNames.length > 0) return packNames;
+
+  return normalizeNameList(fallback);
+}
+
+function buildDefaultOrganismSelection(orgCount) {
+  const names = [];
+  for (let i = 0; i < orgCount; i++) {
+    const label = ORG_LABELS[i];
+    names.push(label === "B" ? "worker-B" : "opportunist-A");
+  }
+  return names;
+}
+
+function resolveDefinitionFile(baseDir, name) {
+  const normalized = normalizeActorName(name);
+  if (!normalized) return null;
+  return path.join(baseDir, `${normalized}.js`);
+}
+
+async function loadDefinitionMaybe(filePath) {
+  if (!filePath) return null;
+  try {
+    await access(filePath);
+  } catch {
+    return null;
+  }
+
+  const mod = await import(pathToFileURL(filePath).href);
+  const definition = mod.default ?? mod.definition ?? mod;
+  if (!definition || typeof definition.onTick !== "function") {
+    console.warn(`[defs] skipped ${filePath}: missing definition.onTick`);
+    return null;
+  }
+  return definition;
+}
+
+function uniqueList(items) {
+  const out = [];
+  const seen = new Set();
+  for (const item of items || []) {
+    const name = normalizeActorName(item);
+    if (!name || seen.has(name)) continue;
+    seen.add(name);
+    out.push(name);
+  }
+  return out;
+}
+
+function normalizeNameList(value) {
+  if (Array.isArray(value)) {
+    return uniqueList(value);
+  }
+  if (typeof value === "string") {
+    return uniqueList(value.split(","));
+  }
+  return [];
+}
+
+function normalizeActorName(name) {
+  const raw = String(name ?? "").trim();
+  if (!raw) return "";
+  if (raw.endsWith(".js")) return raw.slice(0, -3);
+  return raw;
+}
+
+function selectNameForIndex(names, index) {
+  if (!Array.isArray(names) || names.length === 0) return null;
+  const idx = index % names.length;
+  return names[idx] || null;
+}
+
 function createPrng(seed) {
   // Lightweight deterministic PRNG for jitter/probabilities. This is not cryptographic;
   // it is only used to make demo behavior reproducible from ECO_SEED.
@@ -975,6 +1253,21 @@ function numOr(value, fallback, min, max) {
   return Math.min(max, Math.max(min, n));
 }
 
+function boolOr(value, fallback = false) {
+  if (typeof value === "boolean") return value;
+  const raw = String(value ?? "").trim().toLowerCase();
+  if (!raw) return fallback;
+  if (raw === "1" || raw === "true" || raw === "yes" || raw === "on") return true;
+  if (raw === "0" || raw === "false" || raw === "no" || raw === "off") return false;
+  return fallback;
+}
+
+function listOr(value, fallback = []) {
+  const parsed = normalizeNameList(value);
+  if (parsed.length > 0) return parsed;
+  return normalizeNameList(fallback);
+}
+
 function logConfig(cfg) {
   console.log("[config]", JSON.stringify({
     durationMs: cfg.durationMs,
@@ -988,7 +1281,13 @@ function logConfig(cfg) {
     concerns: cfg.concerns,
     orgs: cfg.orgs,
     storeRoot: cfg.storeRoot,
-    seedHex: cfg.seedHex
+    seedHex: cfg.seedHex,
+    defsEnabled: cfg.defsEnabled,
+    defsDir: cfg.defsDir || null,
+    defsPack: cfg.defsPack || null,
+    packsDir: cfg.packsDir || null,
+    organismNames: cfg.organismNames,
+    ratifierNames: cfg.ratifierNames
   }));
 }
 

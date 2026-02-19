@@ -12,6 +12,15 @@ const DEFAULT_RETRY = {
   maxAttempts: 0 // 0 = unlimited
 };
 
+const WARMSET_MAX = 256;
+
+function normalizeWarmN(warmN, { min = 1, max = WARMSET_MAX, fallback = 1 } = {}) {
+  const raw = Number.isFinite(warmN) ? Math.floor(warmN) : fallback;
+  if (raw < min) return min;
+  if (raw > max) return max;
+  return raw;
+}
+
 function normalizeWarmupBudget(b = {}) {
   const maxTicks = Number.isFinite(b.maxTicks) ? b.maxTicks : DEFAULT_WARMUP.maxTicks;
   const maxMs = Number.isFinite(b.maxMs) ? b.maxMs : DEFAULT_WARMUP.maxMs;
@@ -26,4 +35,4 @@ function normalizeRetryPolicy(r = {}) {
   return { cooldownMs, backoff, maxAttempts };
 }
 
-export { normalizeWarmupBudget, normalizeRetryPolicy, DEFAULT_WARMUP, DEFAULT_RETRY };
+export { normalizeWarmN, normalizeWarmupBudget, normalizeRetryPolicy, DEFAULT_WARMUP, DEFAULT_RETRY, WARMSET_MAX };

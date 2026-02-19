@@ -11,6 +11,12 @@ import { runEcologyOrchestrator } from "./ecology-orchestrator.js";
  * The heavy logic (readiness, topology, loops, teardown) lives in ecology-orchestrator.js.
  */
 async function main() {
+  const defsDir = (process.env.ECO_DEFS_DIR || "").trim();
+  const defsPack = (process.env.ECO_DEFS_PACK || process.env.ECO_PACK || "").trim();
+  const packsDir = (process.env.ECO_DEFS_PACKS_DIR || process.env.ECO_PACKS_DIR || "").trim();
+  const organismNames = listEnv("ECO_ORGANISMS");
+  const ratifierNames = listEnv("ECO_RATIFIERS");
+
   const cfg = {
     durationMs: intEnv("ECO_DURATION_MS", 180_000, 1_000, 3_600_000),
     readyMs: intEnv("ECO_READY_MS", 45_000, 1_000, 300_000),
@@ -23,7 +29,13 @@ async function main() {
     concerns: intEnv("ECO_CONCERNS", 2, 1, 8),
     orgs: intEnv("ECO_ORGS", 3, 1, 8),
     storeRoot: process.env.ECO_STORE_ROOT || "./store/ecology",
-    seedHex: readOrCreateSeed()
+    seedHex: readOrCreateSeed(),
+    defsEnabled: boolEnv("ECO_DEFS", false) || Boolean(defsDir || defsPack || organismNames.length || ratifierNames.length),
+    defsDir,
+    defsPack,
+    packsDir,
+    organismNames,
+    ratifierNames
   };
 
   console.log("[run-ecology] starting ecology demo");
@@ -57,6 +69,25 @@ function floatEnv(name, fallback, min, max) {
   const parsed = Number.parseFloat(String(process.env[name] ?? ""));
   const value = Number.isFinite(parsed) ? parsed : fallback;
   return Math.min(max, Math.max(min, value));
+}
+
+function boolEnv(name, fallback = false) {
+  const raw = String(process.env[name] ?? "").trim().toLowerCase();
+  if (!raw) return fallback;
+  if (raw === "1" || raw === "true" || raw === "yes" || raw === "on") return true;
+  if (raw === "0" || raw === "false" || raw === "no" || raw === "off") return false;
+  return fallback;
+}
+
+function listEnv(name) {
+  const raw = String(process.env[name] ?? "").trim();
+  if (!raw) return [];
+  const items = [];
+  for (const part of raw.split(",")) {
+    const item = String(part || "").trim();
+    if (item) items.push(item);
+  }
+  return items;
 }
 
 main().catch((err) => {

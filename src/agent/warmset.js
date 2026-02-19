@@ -32,7 +32,6 @@ function createWarmsetManager({ warmN, openConcern }) {
     const hex = b4a.toString(keyBuf, "hex");
     const entry = warmMap.get(hex) || {
       base: null,
-      strictState: null,
       lastUsed: now,
       keyBuf,
       status: "warming",
@@ -65,9 +64,9 @@ function createWarmsetManager({ warmN, openConcern }) {
         await entry.base.ready();
       }
       await entry.base.update();
-      entry.strictState = await getStrictState(entry.base, 1n).catch(() => null);
+      const strictState = await getStrictState(entry.base, 1n).catch(() => null);
 
-      const ready = budget.minViewReadable ? !!entry.strictState : true;
+      const ready = budget.minViewReadable ? !!strictState : true;
       if (!ready) {
         throw new Error("not-ready");
       }
