@@ -18,11 +18,22 @@ Advertise concern into discovery
 
 Terminal 3 — organism
 - Run `DISCOVERY_ID=<discoveryKey> node runOrganism.js`.
-- In the REPL, run `debugNextDiscovery()` to process one discovery cycle; it uppercases string jobs when `cap === "debug.meta.value/v1"` and publishes a pub record.
+- In the REPL, run `help()` to see controls.
+- `tick()` (or `debugNextDiscovery()`) runs one modern runner pass.
+- `start()/stop()` controls a tick loop; `status()` shows warm/cursor status.
 
 Terminal 4 — ratifier
 - Run `DISCOVERY_ID=<discoveryKey> node runRatifier.js`.
-- In the REPL, run `debugNextDiscovery()` to process one cycle; it emits a rat record with determination “accept”, tier “debug”, note “auto-accepted by debug projector”.
+- In the REPL, run `help()` to see controls.
+- `tick()` (or `debugNextDiscovery()`) runs one modern runner pass.
+- `start()/stop()` controls a tick loop; `status()` shows warm/cursor status.
+- Default ratifier actor is `fn-rat` with default function module `docs/examples/fn-rat/example.js`.
+- Override actor/module if needed:
+  - `DISCOVERY_ID=<discoveryKey> RAT_ACTOR=ratify-all node runRatifier.js`
+  - `DISCOVERY_ID=<discoveryKey> RAT_ACTOR=fn-rat FN_RAT_MODULE=./docs/examples/fn-rat/example.js node runRatifier.js`
+- Runtime REPL helpers:
+  - `setFnModule("./path/to/module.js")` updates `FN_RAT_MODULE` and rebuilds runner.
+  - `fnModule()` prints current module path and whether active actor uses it.
 
 Waiting / propagation
 - Swarm replication can take ~10–20s in dev; if organism/ratifier see no records yet, wait and rerun `debugNextDiscovery()` after a few seconds.
@@ -32,3 +43,9 @@ Troubleshooting checklist
 - Concern not advertised: ensure `addConcern("<concernKey>")` was called in discovery.
 - Replication delay: wait 10–20s and rerun the debug helper; check terminals for swarm connection logs.
 - Missing jobs: verify `createJob` was called and concern REPL shows entries (`getJobView().createReadStream()` can be inspected in REPL).
+
+Function organism: `fn-pub`
+- Run organism REPL with explicit actor + function module:
+  - `DISCOVERY_ID=<discoveryKey> ORG_ACTOR=fn-pub FN_PUB_MODULE=./docs/examples/fn-pub/example.js node runOrganism.js`
+- In REPL, run `tick()` (or `start()`), then inspect concern PUB leaves from concern REPL via `getPublishView()`.
+- Reminder: publish append is optimistic proposal only; acceptance is when derived `pub/<job>/<org>/<attempt>` leaf materializes.
