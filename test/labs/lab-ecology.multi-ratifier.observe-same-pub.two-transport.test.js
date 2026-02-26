@@ -120,6 +120,13 @@ test("lab-ecology.multi-ratifier.observe-same-pub.two-transport", { timeout: bud
         ],
         bases: [],
         assert: async () => {
+          const isReal = ctx.transportKind === "hyperswarm";
+          const acceptWindowMs = isReal
+            ? Math.max(12_000, Math.floor(budgets.convergeMs * 0.3))
+            : 2_500;
+          const settlePauseMs = isReal ? 20 : 0;
+          const ratRepublishEveryMs = isReal ? 700 : 200;
+
           const jobKey = await createJob(hostBase, "cap/lab-ecology-multi-ratifier", { in: "job" });
           const attemptTokenA = ctx.topicFor("lab-ecology-rat-attempt-org-a");
 
@@ -130,7 +137,8 @@ test("lab-ecology.multi-ratifier.observe-same-pub.two-transport", { timeout: bud
           });
 
           let acceptedPub = null;
-          for (let i = 0; i < 120; i++) {
+          const pubDeadline = Date.now() + acceptWindowMs;
+          while (Date.now() < pubDeadline) {
             await settleRound({
               swarms: [hostSwarm, followerSwarm, orgASwarm, ratASwarm, ratBSwarm],
               bases: [hostBase, followerBase, orgABase, ratABase, ratBBase],
@@ -138,13 +146,22 @@ test("lab-ecology.multi-ratifier.observe-same-pub.two-transport", { timeout: bud
             });
             acceptedPub = await getPubLeaf(hostPublishView, jobKey, orgAKey, attemptTokenA);
             if (acceptedPub) break;
+            if (settlePauseMs) await delayMs(settlePauseMs);
           }
-          if (!acceptedPub) throw semanticError("orgA pub was not accepted");
+          if (!acceptedPub) {
+            throw semanticError("orgA pub was not accepted", {
+              transport: ctx.transportKind,
+              windowMs: acceptWindowMs
+            });
+          }
 
           let acceptedRatA = null;
-          for (let i = 0; i < 120; i++) {
-            // Retry bounded RAT proposal attempts until accepted leaf materializes.
-            if (i === 0 || i % 12 === 0) {
+          let acceptedRatB = null;
+          let lastRatPublishAt = 0;
+          const ratDeadline = Date.now() + acceptWindowMs;
+          while (Date.now() < ratDeadline) {
+            const now = Date.now();
+            if (lastRatPublishAt === 0 || (now - lastRatPublishAt) >= ratRepublishEveryMs) {
               await publishJobRatification(
                 ratABase,
                 jobKey,
@@ -156,22 +173,6 @@ test("lab-ecology.multi-ratifier.observe-same-pub.two-transport", { timeout: bud
                 { t: "result", k: jobKey, a: attemptTokenA },
                 "ratifier-a"
               );
-            }
-            await settleRound({
-              swarms: [hostSwarm, followerSwarm, orgASwarm, ratASwarm, ratBSwarm],
-              bases: [hostBase, followerBase, orgABase, ratABase, ratBBase],
-              rounds: 1
-            });
-            acceptedRatA = await getRatLeaf(hostRatView, jobKey, ratAKey, orgAKey, attemptTokenA);
-            if (acceptedRatA) break;
-          }
-
-          if (!acceptedRatA) throw semanticError("ratifierA rat was not accepted");
-
-          let acceptedRatB = null;
-          for (let i = 0; i < 120; i++) {
-            // Retry bounded RAT proposal attempts until accepted leaf materializes.
-            if (i === 0 || i % 12 === 0) {
               await publishJobRatification(
                 ratBBase,
                 jobKey,
@@ -183,17 +184,32 @@ test("lab-ecology.multi-ratifier.observe-same-pub.two-transport", { timeout: bud
                 { t: "result", k: jobKey, a: attemptTokenA },
                 "ratifier-b"
               );
+              lastRatPublishAt = now;
             }
             await settleRound({
               swarms: [hostSwarm, followerSwarm, orgASwarm, ratASwarm, ratBSwarm],
               bases: [hostBase, followerBase, orgABase, ratABase, ratBBase],
               rounds: 1
             });
+            acceptedRatA = await getRatLeaf(hostRatView, jobKey, ratAKey, orgAKey, attemptTokenA);
             acceptedRatB = await getRatLeaf(hostRatView, jobKey, ratBKey, orgAKey, attemptTokenA);
-            if (acceptedRatB) break;
+            if (acceptedRatA && acceptedRatB) break;
+            if (settlePauseMs) await delayMs(settlePauseMs);
           }
 
-          if (!acceptedRatB) throw semanticError("ratifierB rat was not accepted");
+          if (!acceptedRatA) {
+            throw semanticError("ratifierA rat was not accepted", {
+              transport: ctx.transportKind,
+              windowMs: acceptWindowMs
+            });
+          }
+
+          if (!acceptedRatB) {
+            throw semanticError("ratifierB rat was not accepted", {
+              transport: ctx.transportKind,
+              windowMs: acceptWindowMs
+            });
+          }
 
           const ratifierCount = await countRatifierKeys(hostRatView, jobKey);
           if (ratifierCount < 2) {
@@ -259,4 +275,8 @@ function semanticError(message, detail = null) {
   err.code = "ERR_LAB_SEMANTIC_ASSERT";
   err.detail = detail;
   return err;
+}
+
+function delayMs(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
