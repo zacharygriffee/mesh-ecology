@@ -6,7 +6,9 @@
   "type": "module",
   "scripts": {
     "test": "node test/run-files.js",
-    "commit:check-scope": "node scripts/check-commit-scope.js"
+    "commit:check-scope": "node scripts/check-commit-scope.js",
+    "bundle": "node scripts/release-bundle.js",
+    "deploy:remote": "bash deploy/remote-deploy.sh"
   },
   "private": true,
   "dependencies": {

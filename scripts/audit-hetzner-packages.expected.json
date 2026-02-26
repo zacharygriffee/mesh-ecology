@@ -1,0 +1,41 @@
+{
+  "requiredFiles": [
+    "docs/v0-locked.md",
+    "docs/protocol.md",
+    "packages/hetzner-discovery-host/bin/discovery-host.js",
+    "packages/hetzner-concern-host/bin/concern-host.js",
+    "packages/mesh-operator-cli/bin/mesh.js",
+    "deploy/systemd/mesh-discovery-host.service",
+    "deploy/systemd/mesh-concern-host.service",
+    "deploy/install.sh",
+    "scripts/smoke-hetzner-packages.js",
+    "src/discovery.js",
+    "src/concern.js",
+    "src/concern/apply.js",
+    "src/replicateBase.js",
+    "src/ensureCorestore.js"
+  ],
+  "invariants": {
+    "I1": {
+      "forbiddenInDiscoveryHost": [
+        "ensureConcernSurface",
+        "createJob(",
+        "projector",
+        "createRunner",
+        "runOrganism",
+        "runRatifier",
+        "publishJob"
+      ]
+    },
+    "I5": {
+      "forbiddenHttpPatterns": [
+        "createServer(",
+        "express(",
+        "fastify(",
+        ".listen(",
+        "http://",
+        "https://"
+      ]
+    }
+  }
+}

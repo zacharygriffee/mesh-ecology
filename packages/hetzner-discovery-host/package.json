@@ -1,0 +1,9 @@
+{
+  "name": "@mesh/hetzner-discovery-host",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "discovery-host": "./bin/discovery-host.js"
+  }
+}

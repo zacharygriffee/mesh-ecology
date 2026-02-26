@@ -27,7 +27,7 @@ import {
     getStrictState
 } from "./concern/strict-state.js";
 import { createConcernPublishHelpers } from "./concern/publish.js";
-import { apply, applyWithDeps } from "./concern/apply.js";
+import { apply, applyWithDeps, __setApplyProbe } from "./concern/apply.js";
 
 const DETERMINATION = {
     ACCEPT: 1,
@@ -98,6 +98,7 @@ const {
 
 const __test__ = {
     applyWithDeps,
+    setApplyProbe: __setApplyProbe,
     keys: {
         ECON_BURN_TOTAL_KEY,
         ECON_LOCK_TOTAL_KEY

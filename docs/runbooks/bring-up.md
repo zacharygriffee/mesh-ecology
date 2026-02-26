@@ -2,6 +2,7 @@ Bring-Up Runbook (“run the four”)
 
 Prereqs
 - Install deps; start four terminals in repo root.
+- External pack installs are documented in submodule docs at `external/mesh-ecology-packs/docs/installation.md` (when installed).
 
 Terminal 1 — discovery
 - Run `node runDiscovery.js`.

@@ -1,0 +1,23 @@
+[Unit]
+Description=Mesh Concern Host
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=mesh
+Group=mesh
+WorkingDirectory=__MESH_REPO__
+Environment=NODE_ENV=production
+Environment=CONCERN_HOST_CONFIG=/etc/mesh/concern-host.json
+ExecStart=/usr/bin/env node __MESH_REPO__/packages/hetzner-concern-host/bin/concern-host.js --config /etc/mesh/concern-host.json
+Restart=always
+RestartSec=3
+LimitNOFILE=65536
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/var/lib/mesh /etc/mesh __MESH_REPO__
+
+[Install]
+WantedBy=multi-user.target

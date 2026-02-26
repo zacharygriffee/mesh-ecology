@@ -1,0 +1,14 @@
+{
+  "CORESTORE_DIR": "/var/lib/mesh/concern",
+  "concerns": [
+    "<concern-z32>"
+  ],
+  "SWARM_TOPICS": [
+    "a1ne51fem6j8tmsbh9ho8ja4ro8r3r4kpjy9jp5bbjkc6iagrfwo"
+  ],
+  "SWARM_BOOTSTRAP": [],
+  "CONCERN_WRITERS": [],
+  "VALIDATION": 1,
+  "UPDATE_INTERVAL_MS": 1500,
+  "HEARTBEAT_MS": 30000
+}
