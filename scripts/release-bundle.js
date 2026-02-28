@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
-import { lstat, mkdir, readdir } from 'node:fs/promises'
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { execSync, spawnSync } from 'node:child_process'
+import { lstat, mkdir, readdir } from 'fs/promises'
+import path from 'path'
+import { fileURLToPath } from 'url'
+import { execSync, spawnSync } from 'child_process'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)

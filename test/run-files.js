@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-import { spawnSync } from "node:child_process";
-import { readdirSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { spawnSync } from "child_process";
+import { readdirSync } from "fs";
+import { join, relative, resolve } from "path";
 
 const testDir = resolve(new URL(".", import.meta.url).pathname);
 const allFiles = listTests(testDir).sort();
