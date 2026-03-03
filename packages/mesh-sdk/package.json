@@ -4,7 +4,33 @@
   "private": true,
   "type": "module",
   "main": "./index.js",
+  "scripts": {
+    "guard:bare-import-graph": "node ./scripts/check-bare-import-graph.js",
+    "smoke:node-exports": "node ./scripts/smoke-node-exports.js",
+    "test:conformance": "node ./test/conformance.test.js",
+    "test:bare-runtime": "bare ./test/bare-runtime.smoke.js",
+    "test:bare-e2e": "bare ./test/bare-e2e.materialization.test.js",
+    "guard:bare-e2e-import-graph": "node ./scripts/check-bare-e2e-import-graph.js"
+  },
+  "imports": {
+    "path": {
+      "bare": "bare-path",
+      "default": "path"
+    },
+    "node:path": {
+      "bare": "bare-path",
+      "default": "node:path"
+    }
+  },
   "exports": {
-    ".": "./index.js"
+    ".": {
+      "node": "./src/entry/node.js",
+      "default": "./src/entry/bare.js"
+    },
+    "./node": "./src/entry/node.js",
+    "./bare": "./src/entry/bare.js"
+  },
+  "dependencies": {
+    "bare-path": "^3.0.0"
   }
 }

@@ -1,0 +1,53 @@
+name: Mesh SDK Bare CI
+
+on:
+  push:
+    paths:
+      - "packages/mesh-sdk/**"
+      - "test/sdk/**"
+      - "src/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/mesh-sdk-bare.yml"
+  pull_request:
+    paths:
+      - "packages/mesh-sdk/**"
+      - "test/sdk/**"
+      - "src/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/mesh-sdk-bare.yml"
+  workflow_dispatch:
+
+jobs:
+  mesh-sdk-bare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Bare runtime
+        run: npm install --global bare@1.27.0
+
+      - name: Verify Bare runtime
+        run: bare --version
+
+      - name: Run mesh-sdk dual-runtime checks
+        env:
+          MESH_SDK_RUN_BARE: "1"
+        run: |
+          npm --prefix packages/mesh-sdk run guard:bare-import-graph
+          npm --prefix packages/mesh-sdk run guard:bare-e2e-import-graph
+          npm --prefix packages/mesh-sdk run smoke:node-exports
+          npm --prefix packages/mesh-sdk run test:conformance
+          npm test -- test/sdk/mesh-sdk.bare-runtime.test.js
+          npm test -- test/sdk/mesh-sdk.bare-e2e.test.js

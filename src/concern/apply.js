@@ -22,8 +22,12 @@ import { strictConfigKey, getStrictStateFromView } from "./strict-state.js";
 
 let applyProbe = null;
 
+function isApplyProbeEnabled() {
+  return globalThis.process?.env?.MESH_TEST_APPLY_PROBE === "1";
+}
+
 function maybeProbeApplyEvent(payload) {
-  if (process.env.MESH_TEST_APPLY_PROBE !== "1") return;
+  if (!isApplyProbeEnabled()) return;
   if (typeof applyProbe !== "function") return;
   try {
     applyProbe(payload);
@@ -33,7 +37,7 @@ function maybeProbeApplyEvent(payload) {
 }
 
 function __setApplyProbe(fn) {
-  if (process.env.MESH_TEST_APPLY_PROBE !== "1") return;
+  if (!isApplyProbeEnabled()) return;
   applyProbe = typeof fn === "function" ? fn : null;
 }
 
