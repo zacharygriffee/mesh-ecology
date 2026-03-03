@@ -21,8 +21,15 @@ on:
 
 jobs:
   mesh-sdk-bare:
+    name: mesh-sdk-bare (bare@${{ matrix.bare-version }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        bare-version:
+          - "1.27.0"
+          - "latest"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -36,7 +43,7 @@ jobs:
         run: npm ci
 
       - name: Install Bare runtime
-        run: npm install --global bare@1.27.0
+        run: npm install --global bare@${{ matrix.bare-version }}
 
       - name: Verify Bare runtime
         run: bare --version
@@ -47,7 +54,11 @@ jobs:
         run: |
           npm --prefix packages/mesh-sdk run guard:bare-import-graph
           npm --prefix packages/mesh-sdk run guard:bare-e2e-import-graph
+          npm --prefix packages/mesh-sdk run test:bare-runtime
+          npm --prefix packages/mesh-sdk run test:bare-e2e
           npm --prefix packages/mesh-sdk run smoke:node-exports
           npm --prefix packages/mesh-sdk run test:conformance
+          npm test -- test/concern/apply-runtime-agnostic.test.js
+          npm test -- test/sdk/mesh-sdk.client.test.js
           npm test -- test/sdk/mesh-sdk.bare-runtime.test.js
           npm test -- test/sdk/mesh-sdk.bare-e2e.test.js
