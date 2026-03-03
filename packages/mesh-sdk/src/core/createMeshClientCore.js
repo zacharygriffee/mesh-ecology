@@ -1,5 +1,6 @@
 import b4a from "b4a";
 import idEncoding from "hypercore-id-encoding";
+import { assertHashPort } from "./crypto/assertHashPort.js";
 
 const STATE_SCHEMA = "mesh-ecology-packs/state/v1";
 const TRACE_SCHEMA = "mesh-ecology-packs/trace/v1";
@@ -170,8 +171,10 @@ function assertPlatform(platform) {
   if (typeof platform.scheduleInterval !== "function") throw new Error("platform.scheduleInterval is required");
 }
 
-function createMeshClientCore(platform, config = {}) {
+function createMeshClientCore(platform, config = {}, options = {}) {
   assertPlatform(platform);
+  const defaultHashPort = options.hashPort ?? config.hashPort ?? platform.hashPort ?? null;
+  if (defaultHashPort != null) assertHashPort(defaultHashPort);
   const storeRoot = platform.resolveStoreRoot(assertString(String(config.storeRoot || ""), "storeRoot"));
   const delay = (ms) => platform.sleep(ms);
   const discoveryKey = config.discoveryKey ? encodeKey(config.discoveryKey) : null;

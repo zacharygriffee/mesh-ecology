@@ -58,7 +58,12 @@ jobs:
           npm --prefix packages/mesh-sdk run test:bare-e2e
           npm --prefix packages/mesh-sdk run smoke:node-exports
           npm --prefix packages/mesh-sdk run test:conformance
+          npm --prefix packages/mesh-sdk run test:hashport
+          npm --prefix packages/mesh-sdk run test:hashport-conformance
+          npm --prefix packages/mesh-sdk run test:hashport-parity
           npm test -- test/concern/apply-runtime-agnostic.test.js
           npm test -- test/sdk/mesh-sdk.client.test.js
+          npm test -- test/sdk/mesh-sdk.dual-runtime-structure.test.js
+          npm test -- test/sdk/mesh-sdk.hashport-parity.test.js
           npm test -- test/sdk/mesh-sdk.bare-runtime.test.js
           npm test -- test/sdk/mesh-sdk.bare-e2e.test.js

@@ -1,8 +1,11 @@
 #!/usr/bin/env node
 import assert from "assert/strict";
+import b4a from "b4a";
 
 import { createMeshClient as createNodeMeshClient } from "../src/entry/node.js";
 import { createMeshClient as createBareMeshClient } from "../src/entry/bare.js";
+import { createHashPortBlake2b256 as createNodeHashPort } from "../src/entry/node.js";
+import { createHashPortBlake2b256 as createBareHashPort } from "../src/entry/bare.js";
 import { createMeshClientCore } from "../src/core/createMeshClientCore.js";
 
 function makeMockRuntimeOps() {
@@ -118,6 +121,21 @@ function makeMockPlatform() {
 async function runConformance() {
   assert.equal(typeof createNodeMeshClient, "function", "node entry must export createMeshClient");
   assert.equal(typeof createBareMeshClient, "function", "bare entry must export createMeshClient");
+  assert.equal(typeof createNodeHashPort, "function", "node entry must export createHashPortBlake2b256");
+  assert.equal(typeof createBareHashPort, "function", "bare entry must export createHashPortBlake2b256");
+
+  const nodeHashPort = createNodeHashPort();
+  const bareHashPort = createBareHashPort();
+  assert.equal(nodeHashPort.alg, "blake2b-256");
+  assert.equal(bareHashPort.alg, "blake2b-256");
+  const input = new Uint8Array([0, 1, 2, 3, 4, 5]);
+  const nodeDigest = nodeHashPort.hash32(input);
+  const bareDigest = bareHashPort.hash32(input);
+  assert.equal(nodeDigest instanceof Uint8Array, true, "node hash32 must return Uint8Array");
+  assert.equal(bareDigest instanceof Uint8Array, true, "bare hash32 must return Uint8Array");
+  assert.equal(nodeDigest.byteLength, 32, "node hash32 must return 32 bytes");
+  assert.equal(bareDigest.byteLength, 32, "bare hash32 must return 32 bytes");
+  assert.equal(b4a.equals(nodeDigest, bareDigest), true, "node and bare hashports should match for same input");
 
   const sharedConfig = {
     storeRoot: "./store/conformance",

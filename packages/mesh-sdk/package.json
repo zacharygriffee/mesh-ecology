@@ -8,6 +8,9 @@
     "guard:bare-import-graph": "node ./scripts/check-bare-import-graph.js",
     "smoke:node-exports": "node ./scripts/smoke-node-exports.js",
     "test:conformance": "node ./test/conformance.test.js",
+    "test:hashport": "node ./test/hashport.contract.test.js",
+    "test:hashport-conformance": "node ./test/hashport.conformance.test.js",
+    "test:hashport-parity": "node ./test/hashport.parity.test.js",
     "test:bare-runtime": "bare ./test/bare-runtime.smoke.js",
     "test:bare-e2e": "bare ./test/bare-e2e.materialization.test.js",
     "guard:bare-e2e-import-graph": "node ./scripts/check-bare-e2e-import-graph.js"
@@ -31,6 +34,7 @@
     "./bare": "./src/entry/bare.js"
   },
   "dependencies": {
-    "bare-path": "^3.0.0"
+    "bare-path": "^3.0.0",
+    "hypercore-crypto": "^3.6.1"
   }
 }

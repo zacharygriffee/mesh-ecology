@@ -1,4 +1,8 @@
 /**
+ * @import { HashPort } from "../core/crypto/hashport.js"
+ */
+
+/**
  * Platform services required by mesh-sdk core.
  *
  * `nowMs` is required to preserve timeout/elapsed behavior in
@@ -21,6 +25,7 @@
  * @property {(ms: number, signal?: AbortSignal) => Promise<void>} sleep Delay helper used by polling/wait loops.
  * @property {() => number} nowMs Monotonic-enough wall clock in milliseconds for timeout/elapsed calculations.
  * @property {(task: () => (void | Promise<void>), intervalMs: number) => (() => void)} scheduleInterval Schedule recurring work and return a cleanup function.
+ * @property {HashPort} [hashPort] Default HashPort for this runtime.
  */
 
 export {};

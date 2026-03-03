@@ -95,6 +95,10 @@ function scanGraph(startFile) {
 
       const resolved = resolveImport(file, specifier);
       if (!resolved || visited.has(resolved)) continue;
+      // Third-party packages can use conditional exports and runtime-specific entrypoints.
+      // We guard first-party Bare entry graph here and avoid Node-only false positives from
+      // dependency internals resolved under Node's condition set.
+      if (resolved.includes(`${path.sep}node_modules${path.sep}`)) continue;
       queue.push(resolved);
     }
   }

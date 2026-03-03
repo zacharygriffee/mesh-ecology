@@ -22,5 +22,20 @@ if (typeof nodeMod.createMeshClient !== "function") {
 if (mainMod.createMeshClient !== nodeMod.createMeshClient) {
   throw new Error(`${packageName} and ${packageName}/node must resolve to the same Node entry`);
 }
+if (typeof mainMod.asHashPort !== "function" || typeof nodeMod.asHashPort !== "function") {
+  throw new Error(`Missing asHashPort export from ${packageName} and/or ${packageName}/node`);
+}
+if (typeof mainMod.assertHashPort !== "function" || typeof nodeMod.assertHashPort !== "function") {
+  throw new Error(`Missing assertHashPort export from ${packageName} and/or ${packageName}/node`);
+}
+if (typeof mainMod.createHashPortBlake2b256 !== "function" || typeof nodeMod.createHashPortBlake2b256 !== "function") {
+  throw new Error(`Missing createHashPortBlake2b256 export from ${packageName} and/or ${packageName}/node`);
+}
+if (mainMod.asHashPort !== nodeMod.asHashPort || mainMod.assertHashPort !== nodeMod.assertHashPort) {
+  throw new Error(`${packageName} and ${packageName}/node must resolve to the same HashPort helpers`);
+}
+if (mainMod.createHashPortBlake2b256 !== nodeMod.createHashPortBlake2b256) {
+  throw new Error(`${packageName} and ${packageName}/node must resolve to the same HashPort factory`);
+}
 
 console.log(`[mesh-sdk] node exports smoke passed for ${packageName} and ${packageName}/node`);

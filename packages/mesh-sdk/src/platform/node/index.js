@@ -1,4 +1,6 @@
 import path from "path";
+import { createHashPortBlake2b256 } from "../../core/crypto/createHashPortBlake2b256.js";
+import { hash32Blake2b256 } from "./hash/blake2b256.js";
 
 function abortError() {
   const err = new Error("The operation was aborted");
@@ -67,7 +69,8 @@ function createNodePlatform() {
     nowMs() {
       return Date.now();
     },
-    scheduleInterval
+    scheduleInterval,
+    hashPort: createHashPortBlake2b256(hash32Blake2b256)
   };
 }
 
