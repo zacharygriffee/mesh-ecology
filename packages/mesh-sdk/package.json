@@ -13,6 +13,7 @@
     "test:hashport-parity": "node ./test/hashport.parity.test.js",
     "test:bare-runtime": "bare ./test/bare-runtime.smoke.js",
     "test:bare-e2e": "bare ./test/bare-e2e.materialization.test.js",
+    "test:bare-labs": "bare ../../test/bare-labs/run.js",
     "guard:bare-e2e-import-graph": "node ./scripts/check-bare-e2e-import-graph.js"
   },
   "imports": {

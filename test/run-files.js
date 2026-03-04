@@ -138,6 +138,7 @@ function listTests(dir) {
   for (const entry of entries) {
     const full = join(dir, entry.name);
     if (entry.isDirectory()) {
+      if (entry.name === "bare-labs") continue;
       out.push(...listTests(full));
       continue;
     }

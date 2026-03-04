@@ -10,7 +10,8 @@ const repoRoot = path.resolve(packageRoot, "../..");
 
 const startFiles = [
   path.resolve(packageRoot, "test/bare-runtime.smoke.js"),
-  path.resolve(packageRoot, "test/bare-e2e.materialization.test.js")
+  path.resolve(packageRoot, "test/bare-e2e.materialization.test.js"),
+  path.resolve(repoRoot, "test/bare-labs/run.js")
 ];
 
 const forbiddenBuiltin = new Set([
