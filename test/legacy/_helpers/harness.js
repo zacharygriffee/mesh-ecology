@@ -1,30 +1,5 @@
-import fs from "fs";
-import os from "os";
-import path from "path";
-import { fileURLToPath } from "url";
-import Krypto from "hypercore-crypto";
-import { createFakeSwarm } from "fakeswarm";
-import b4a from "b4a";
-
-function mkTempDir(prefix = "lab-") {
-  return fs.mkdtempSync(path.join(os.tmpdir(), prefix));
-}
-
-function rmTempDir(dir) {
-  if (!dir) return;
-  fs.rmSync(dir, { recursive: true, force: true });
-}
-
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-export function isDirectRun(metaUrl) {
-  if (!process.argv[1]) return false;
-  return (
-      path.resolve(fileURLToPath(metaUrl)) ===
-      path.resolve(process.argv[1])
-  );
 }
 
 async function withTimeout(promise, ms, label = "timeout") {
@@ -52,4 +27,4 @@ async function cycleLoop({ maxCycles, timeoutMs, cycle }) {
   return { found: false, cycles: maxCycles, log, elapsedMs: Date.now() - start };
 }
 
-export { mkTempDir, rmTempDir, withTimeout, sleep, cycleLoop, createFakeSwarm };
+export { withTimeout, sleep, cycleLoop };

@@ -1,5 +1,5 @@
 import test from "brittle";
-import { cycleLoop, sleep } from "../../labs/_shared/harness.js";
+import { cycleLoop, sleep } from "./_helpers/harness.js";
 
 test("cycleLoop stops on first found", async (t) => {
   const res = await cycleLoop({

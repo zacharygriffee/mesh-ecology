@@ -1,5 +1,5 @@
 import test from "brittle";
-import { withTimeout } from "../../labs/_shared/harness.js";
+import { withTimeout } from "./_helpers/harness.js";
 
 test("withTimeout resolves passthrough", async (t) => {
   const res = await withTimeout(Promise.resolve("ok"), 1000, "x");
