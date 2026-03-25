@@ -22,43 +22,43 @@ Purpose: keep the engine boring, compatibility-first, and explicit about authori
 
 ## Phase 1: Compatibility baseline
 
-- [ ] Inventory current public/runtime-consumed entrypoints used by sibling repos, CLI flows, and packs helpers.
+- [x] Inventory current public/runtime-consumed entrypoints used by sibling repos, CLI flows, and packs helpers.
   - Accept when: one compatibility table covers exports, commands, env usage, and runtime assumptions relied on externally.
-- [ ] Mark each engine-facing surface as `supported`, `legacy-supported`, or `internal`.
+- [x] Mark each engine-facing surface as `supported`, `legacy-supported`, or `internal`.
   - Accept when: the support policy is documented in one place and linked from repo docs.
 
 ## Phase 2: Surface reduction
 
-- [ ] Declare the small supported engine surface around discovery open/use, concern open/use, runner creation, runner-shell creation, and mesh SDK usage.
+- [x] Declare the small supported engine surface around discovery open/use, concern open/use, runner creation, runner-shell creation, and mesh SDK usage.
   - Accept when: docs name the preferred entrypoints and explicitly stop presenting internals as first-class user concepts.
-- [ ] Remove wording that implies an `authority surface`.
+- [x] Remove wording that implies an `authority surface`.
   - Accept when: docs describe authority as a role over discovery/concern only.
 
 ## Phase 3: Capability model
 
-- [ ] Formalize the engine capability model in docs and public API expectations:
+- [x] Formalize the engine capability model in docs and public API expectations:
   - `authority | replica` as deployment role
   - `readonly | writable` as capability
   - replica default = `readonly`
   - writable elevation = explicit authority action
   - Accept when: repo docs and examples consistently present readonly-first replicas.
-- [ ] Audit comments, examples, and runner-facing docs for ambiguous writable posture.
+- [x] Audit comments, examples, and runner-facing docs for ambiguous writable posture.
   - Accept when: no maintained example implies writable-by-default replicas or actors.
 
 ## Phase 4: Engine API cleanup
 
-- [ ] Keep existing low-level APIs working while documenting preferred terminology and preferred entrypoints.
+- [x] Keep existing low-level APIs working while documenting preferred terminology and preferred entrypoints.
   - Accept when: no currently working sibling consumer path breaks.
 - [ ] Add compatibility aliases or normalization helpers where naming cleanup would otherwise force code churn.
   - Accept when: old names still resolve and new names are the documented preference.
-- [ ] Keep warmset/retry/dedupe/journal plumbing out of the public mental model.
+- [x] Keep warmset/retry/dedupe/journal plumbing out of the public mental model.
   - Accept when: public docs center only discovery, concern, roles, actors, and materialization proof.
 
 ## Phase 5: Migration and deprecation
 
 - [ ] Define a repo deprecation policy for engine-facing consumers.
   - Accept when: docs describe `supported`, `legacy-supported`, `deprecated`, and make clear that removal is not part of this pass.
-- [ ] Write a short sibling-repo migration note:
+- [x] Write a short sibling-repo migration note:
   - current usage
   - preferred usage
   - whether any code changes are required
@@ -68,13 +68,13 @@ Purpose: keep the engine boring, compatibility-first, and explicit about authori
 
 ## Phase 6: Validation
 
-- [ ] Add or update targeted regression coverage for:
+- [x] Add or update targeted regression coverage for:
   - readonly replica defaults
   - explicit writer admission
   - actor helpers not implying authority powers
   - SDK `state`, `trace`, and materialization behavior
   - Accept when: focused runner/discovery/ratifier and SDK tests cover the compatibility-sensitive paths.
-- [ ] Keep protocol/runtime invariants visibly locked throughout the simplification work.
+- [x] Keep protocol/runtime invariants visibly locked throughout the simplification work.
   - Accept when: no task in this TODO requires protocol or apply semantic changes.
 
 ## Coordination notes
