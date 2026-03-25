@@ -118,6 +118,7 @@
   - survives agent churn and state loss.
 - **Important:**
   - The organism is an **authority boundary**.
+  - Runtime default is still readonly-first: an organism process does not become writable merely by opening or replicating a surface.
   - The organism can be replaced at the logic level without changing identity.
 
 ## Corestore Boundary
@@ -165,6 +166,7 @@
 - **Intuition:** Opening the door.
 - **Definition:** The explicit act of adding a writer to a surface (commonly represented by a non-typed envelope).
 - **Important:** Unauthorized writes may appear locally, but must not land in the converged view under validation rules. Routine organism onboarding uses optimistic submit + `host.ackWriter`, not admission.
+- **Default posture:** Replicas/followers should be assumed readonly unless an authority process explicitly elevates them.
 
 ## Optimistic Acknowledgement (`ackWriter`)
 - **Intuition:** “Indexer agrees this candidate can count.”

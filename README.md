@@ -14,6 +14,8 @@ Mesh ecology v0 repository.
 - CLI authority runbook: [docs/runbooks/cli-authority.md](docs/runbooks/cli-authority.md)
 - Hetzner deploy runbook: [docs/runbooks/hetzner-deploy.md](docs/runbooks/hetzner-deploy.md)
 - Release bundle runbook: [docs/runbooks/release-bundle.md](docs/runbooks/release-bundle.md)
+- Runtime support policy: [docs/runtime-support-policy.md](docs/runtime-support-policy.md)
+- Runtime consumer migration note: [docs/runtime-consumer-migration.md](docs/runtime-consumer-migration.md)
 
 ## Labs + Testing Docs
 

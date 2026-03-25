@@ -2,6 +2,8 @@ Bring-Up Runbook (“run the four”)
 
 Prereqs
 - Install deps; start four terminals in repo root.
+- Preferred control-plane workflows now live in `mesh-ecology-packs` via `live:ctl`.
+- This runbook is for direct engine/runtime bring-up and local debugging of the raw four-process loop.
 - External pack installs are documented in submodule docs at `external/mesh-ecology-packs/docs/installation.md` (when installed).
 
 Terminal 1 — discovery
@@ -50,3 +52,4 @@ Function organism: `fn-pub`
   - `DISCOVERY_ID=<discoveryKey> ORG_ACTOR=fn-pub FN_PUB_MODULE=./docs/examples/fn-pub/example.js node runOrganism.js`
 - In REPL, run `tick()` (or `start()`), then inspect concern PUB leaves from concern REPL via `getPublishView()`.
 - Reminder: publish append is optimistic proposal only; acceptance is when derived `pub/<job>/<org>/<attempt>` leaf materializes.
+- See `docs/protocol.md` ("Acceptance / Materialization") for canonical semantics of `{accepted:false,...}` vs derived-view proof.

@@ -20,6 +20,7 @@ Status: normative for runtime implementers; aligned with `docs/v0-locked.md`, `d
 ## Default Role: Optimistic Proposer (Normative)
 - By default, both organism and ratifier operate as optimistic proposers (non-writers) on concern surfaces.
 - They connect/open/replicate concern surfaces via the concern bootstrap key (`base.key`) obtained from discovery; replication uses the normal concern surface, not a writer admission path.
+- In runtime terms, their default deployment posture is a `readonly` replica/follower until an authority process explicitly grants writer capability.
 - Proposals are submitted only through optimistic appends: `base.append(..., { optimistic: true })`.
 - In default mode they MUST NOT:
   - call `addWriter(...)`,
@@ -30,6 +31,7 @@ Status: normative for runtime implementers; aligned with `docs/v0-locked.md`, `d
 ## Extension: Authority Writer / Hosted Concern Surfaces (Out of Scope)
 - It is valid for an operator-designed organism/ratifier to become an authority writer or to host/orchestrate concern surfaces.
 - This is NOT part of the default contract and MUST be an explicit, purposeful design choice.
+- Making a replica writable is an advanced operator action, not a default runtime assumption.
 - Any implementation operating in writer-mode MUST document:
   - writer governance / admission model,
   - safety model (what it is allowed to append, how it avoids drift).
