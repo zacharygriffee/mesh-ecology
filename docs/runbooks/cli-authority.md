@@ -3,6 +3,11 @@
 This runbook covers stateless authority CLI writes with a durability barrier:
 append, wait for replication, exit.
 
+Compatibility note:
+- This path remains supported for narrow stateless authority operations.
+- Preferred control-plane workflows now live in `mesh-ecology-packs` via `live:ctl`.
+- Use this runbook when you intentionally want direct CLI authority writes, not as the default operator UX.
+
 ## Prereqs
 
 - Repo checkout with dependencies installed.
@@ -60,7 +65,21 @@ node packages/mesh-operator-cli/bin/mesh.js discovery advertise-concern \
   --timeout-ms 45000
 ```
 
-## 5) Submit Job
+## 5) Advertise Discovery
+
+```bash
+CORESTORE_DIR=./store/operator \
+SWARM_TOPICS=<topic-z32> \
+node packages/mesh-operator-cli/bin/mesh.js discovery advertise-discovery \
+  --discovery <parent-discovery-z32> \
+  --nested <child-discovery-z32> \
+  --label "child-discovery" \
+  --wait \
+  --min-peers 1 \
+  --timeout-ms 45000
+```
+
+## 6) Submit Job
 
 ```bash
 cat > /tmp/job.json <<'JSON'

@@ -1,30 +1,42 @@
-import { ensureDiscoverySurface } from "../discovery.js";
-import idEncoding from "hypercore-id-encoding";
+import { KIND } from "../discovery.js";
 import { ensureAgentStateSurface, readAgentState, writeAgentState } from "./state.js";
-import { joinDiscovery, ensureDiscoveryReplication, scanDiscovery } from "./discovery-roam.js";
+import { scanDiscovery, ensureTrackedDiscovery as ensureTrackedDiscoveryBase } from "./discovery-roam.js";
 import { createWarmsetManager, defaultOpenConcern } from "./warmset.js";
 import { normalizeWarmN } from "./config.js";
 import b4a from "b4a";
 
 // Shared shell: opens agent state, discovery, and warms concerns up to warmN.
-// No projector logic or publishing; purely coordination.
+// It is coordination-only: it should observe and warm replica state without
+// implying writer authority or performing admission-side actions.
 
 async function createRunnerShell({ role, corestore, swarm, discoveryKeys = [], warmN = 1, log = console }) {
   const agentState = await ensureAgentStateSurface(corestore.namespace(`${role}-state`));
   const prior = (await readAgentState(agentState)) || { cursors: {}, warm: {} };
+  const discoveryCursors = prior.cursors ?? {};
 
   const discoveries = [];
+  const discoveryIndex = new Map();
   for (const key of discoveryKeys) {
-    const discKeyBuf = b4a.isBuffer(key) ? key : idEncoding.decode(key);
-    const discKeyZ32 = idEncoding.encode(discKeyBuf);
-    const disc = await ensureDiscoverySurface(
-      corestore.namespace(`${role}-disc-${discKeyZ32}`),
-      { key: discKeyBuf },
-      swarm
-    ); // replica open: scan-only
-    ensureDiscoveryReplication(disc, swarm);
-    joinDiscovery(swarm, disc);
-    discoveries.push({ disc, cursor: prior.cursors[discKeyZ32] ?? 0, key: discKeyZ32 });
+    await ensureTrackedDiscoveryBase({
+      discoveries,
+      discoveryIndex,
+      corestore,
+      swarm,
+      key,
+      cursors: discoveryCursors,
+      namespacePrefix: `${role}-disc`
+    });
+  }
+  for (const key of Object.keys(discoveryCursors)) {
+    await ensureTrackedDiscoveryBase({
+      discoveries,
+      discoveryIndex,
+      corestore,
+      swarm,
+      key,
+      cursors: discoveryCursors,
+      namespacePrefix: `${role}-disc`
+    });
   }
 
   const openConcern = await defaultOpenConcern({ cs: corestore, swarm });
@@ -32,16 +44,31 @@ async function createRunnerShell({ role, corestore, swarm, discoveryKeys = [], w
   const warmset = createWarmsetManager({ warmN: normalizedWarmN, openConcern });
 
   async function tick() {
-    for (const d of discoveries) {
+    const currentDiscoveries = discoveries.slice();
+    const pendingDiscoveries = [];
+    for (const d of currentDiscoveries) {
       await d.disc.update({ wait: true }).catch(() => {});
       let latest = d.cursor;
       for await (const entry of scanDiscovery(d.disc, { since: d.cursor })) {
         latest = entry.seq;
-        if (entry.t === 2 /* CONCERN */) {
+        if (entry.t === KIND.CONCERN) {
           await warmset.warm(entry.k32);
+        } else if (entry.t === KIND.DISCOVERY) {
+          pendingDiscoveries.push(entry.k32);
         }
       }
       d.cursor = latest;
+    }
+    for (const keyBuf of pendingDiscoveries) {
+      await ensureTrackedDiscoveryBase({
+        discoveries,
+        discoveryIndex,
+        corestore,
+        swarm,
+        key: keyBuf,
+        cursors: discoveryCursors,
+        namespacePrefix: `${role}-disc`
+      });
     }
     const cursorMap = Object.fromEntries(discoveries.map((d) => [d.key, d.cursor]));
     const warmKeys = warmset.getWarm().map((w) => b4a.toString(w.keyBuf, "hex"));

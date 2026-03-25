@@ -10,6 +10,7 @@ import { ensureCorestore } from "../../../src/ensureCorestore.js";
 import {
   ensureDiscoverySurface,
   addConcern,
+  addDiscovery,
   addWriter as addDiscoveryWriter
 } from "../../../src/discovery.js";
 import {
@@ -30,9 +31,14 @@ const DEFAULT_TIMEOUT_MS = 15_000;
 function printHelp() {
   console.log([
     "mesh discovery advertise-concern --discovery <z32> --concern <z32> [--label text] [--wait|--no-wait] [--min-peers n] [--timeout-ms n] [--config path]",
+    "mesh discovery advertise-discovery --discovery <z32> --nested <z32> [--label text] [--wait|--no-wait] [--min-peers n] [--timeout-ms n] [--config path]",
     "mesh discovery add-writer --discovery <z32> --writer <z32> [--wait|--no-wait] [--min-peers n] [--timeout-ms n] [--config path]",
     "mesh job submit --concern <z32> --json <path> [--wait|--no-wait] [--min-peers n] [--timeout-ms n] [--config path]",
     "mesh status --concern <z32> [--config path]",
+    "",
+    "Control-plane note:",
+    "  For normal operator workflows, prefer mesh-ecology-packs live:ctl.",
+    "  Use this CLI for compatibility and narrow stateless authority writes.",
     "",
     "Write durability flags:",
     "  --wait / --no-wait          default: --wait",
@@ -58,6 +64,9 @@ function parseArgs(argv) {
   let rest = [];
   if (argv[0] === "discovery" && argv[1] === "advertise-concern") {
     command = "discovery advertise-concern";
+    rest = argv.slice(2);
+  } else if (argv[0] === "discovery" && argv[1] === "advertise-discovery") {
+    command = "discovery advertise-discovery";
     rest = argv.slice(2);
   } else if (argv[0] === "discovery" && argv[1] === "add-writer") {
     command = "discovery add-writer";
@@ -308,6 +317,52 @@ async function cmdAdvertiseConcern({ flags, config }) {
   });
 }
 
+async function cmdAdvertiseDiscovery({ flags, config }) {
+  const discoveryKey = flags.discovery;
+  const nestedKey = flags.nested;
+  const label = flags.label || "";
+  const durability = resolveDurabilityOptions(flags, config);
+
+  if (!discoveryKey) throw new Error("--discovery is required");
+  if (!nestedKey) throw new Error("--nested is required");
+
+  await withRuntime(config, async ({ corestore, swarm, joinTopic }) => {
+    const discoveryKeyBuf = idEncoding.decode(discoveryKey);
+    joinTopic(discoveryKeyBuf, "discovery-key");
+
+    const discovery = await ensureDiscoverySurface(
+      corestore.namespace("mesh-operator-discovery"),
+      { key: discoveryKeyBuf },
+      swarm
+    );
+
+    await waitUntilWritable(discovery, config.timeoutMs);
+
+    if (!discovery.writable) {
+      const writer = idEncoding.encode(discovery.local.key);
+      throw new Error(
+        `discovery is not writable from this operator corestore. local writer=${writer} (admit this key on writable discovery host via DISCOVERY_WRITERS)`
+      );
+    }
+
+    await addDiscovery(discovery, nestedKey, label);
+    await discovery.update({ wait: true }).catch(() => {});
+    const targetLength = discovery.local.length;
+    await runDurabilityBarrier(discovery.local, targetLength, durability);
+
+    console.log(JSON.stringify({
+      ok: true,
+      action: "advertise-discovery",
+      discovery: idEncoding.encode(discovery.key),
+      nested: nestedKey,
+      label,
+      targetLength
+    }, null, 2));
+
+    await discovery.close().catch(() => {});
+  });
+}
+
 async function cmdDiscoveryAddWriter({ flags, config }) {
   const discoveryKey = flags.discovery;
   const writerKey = flags.writer;
@@ -466,6 +521,11 @@ async function main() {
 
   if (command === "discovery advertise-concern") {
     await cmdAdvertiseConcern({ flags, config });
+    return;
+  }
+
+  if (command === "discovery advertise-discovery") {
+    await cmdAdvertiseDiscovery({ flags, config });
     return;
   }
 

@@ -8,7 +8,7 @@ import idEncoding from "hypercore-id-encoding";
 import Autobase from "autobase";
 import {createRunner} from "../../src/agent/runner.js";
 
-import {addConcern, ensureDiscoverySurface, addWriter as addDiscoveryWriter} from "../../src/discovery.js";
+import {addConcern, addDiscovery, ensureDiscoverySurface, addWriter as addDiscoveryWriter} from "../../src/discovery.js";
 import {ensureConcernSurface} from "../../src/concern.js";
 import {createRunnerShell} from "../../src/agent/runner-shell.js";
 import { mkTmp } from "../_helpers/fs.js";
@@ -32,6 +32,11 @@ async function advertise(disc, keyBuf) {
     //   advertise._addedWriter = true;
     // }
     await addConcern(disc, keyBuf, "label");
+    await disc.update({wait: true});
+}
+
+async function advertiseDiscovery(disc, keyBuf) {
+    await addDiscovery(disc, keyBuf, "discovery-label");
     await disc.update({wait: true});
 }
 
@@ -290,5 +295,69 @@ test("runner never calls addWriter on discovery or concern", async (t) => {
         await closeSwarm(swarmHost);
         await closeSwarm(swarmRunner);
         cleanupDirs(discDir, runnerDir, concernHost?.dir);
+    }
+});
+
+test("runner shell follows nested discovery advertisements", async (t) => {
+    let swarmHost;
+    let swarmRunner;
+    let rootDir;
+    let rootStore;
+    let rootDisc;
+    let childDir;
+    let childStore;
+    let childDisc;
+    let concernHost;
+    let runnerDir;
+    let runnerStore;
+    let runner;
+
+    try {
+        ({a: swarmHost, b: swarmRunner} = makeSwarmPair());
+
+        ({dir: rootDir, store: rootStore, disc: rootDisc} = await createDiscoveryHost({swarm: swarmHost}));
+        ({dir: childDir, store: childStore, disc: childDisc} = await createDiscoveryHost({swarm: swarmHost}));
+        concernHost = await createConcernHost({swarm: swarmHost});
+        await concernHost.base.append({ op: 5, v: 1, econ: { mode: 0, attemptBurn: 0, ratBurn: 0 } }, { optimistic: false });
+        await concernHost.base.update({ wait: true });
+
+        await advertiseDiscovery(rootDisc, childDisc.key);
+        await advertise(childDisc, concernHost.key);
+
+        runnerDir = mkTmp("runner-");
+        runnerStore = new Corestore(runnerDir);
+        await runnerStore.ready?.();
+
+        runner = await createRunnerShell({
+            role: "org",
+            corestore: runnerStore,
+            swarm: swarmRunner,
+            discoveryKeys: [idEncoding.encode(rootDisc.key)],
+            warmN: 1,
+            log: { log: () => {} },
+        });
+
+        const warmed = await tickUntil({
+            runner,
+            swarmHost,
+            swarmRunner,
+            predicate: async () => runner.getWarm().some((w) => b4a.equals(w.keyBuf, concernHost.key)),
+            max: 20,
+        });
+
+        t.ok(warmed, "runner shell warms concern discovered via nested discovery");
+        t.is(runner.getWarm()[0]?.base?.writable, false, "runner shell keeps warmed concerns readonly by default");
+    } finally {
+        await closeMaybe(runner);
+        await closeMaybe(runnerStore);
+        await closeMaybe(concernHost?.base);
+        await closeMaybe(concernHost?.store);
+        await closeMaybe(rootDisc);
+        await closeMaybe(rootStore);
+        await closeMaybe(childDisc);
+        await closeMaybe(childStore);
+        await closeSwarm(swarmHost);
+        await closeSwarm(swarmRunner);
+        cleanupDirs(rootDir, childDir, runnerDir, concernHost?.dir);
     }
 });

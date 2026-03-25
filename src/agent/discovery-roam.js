@@ -1,8 +1,10 @@
 import idEncoding from "hypercore-id-encoding";
 import b4a from "b4a";
 import { replicateResource } from "../replicateBase.js";
+import { ensureDiscoverySurface } from "../discovery.js";
 
 // Read-only discovery adapter: advertise/scan only, no scheduling semantics.
+// Roaming discovery should not imply writable or authority-bearing posture.
 
 function joinDiscoveryTopic(swarm, discoveryKeyBuf) {
   if (!swarm) return;
@@ -31,4 +33,38 @@ function ensureDiscoveryReplication(discoveryBase, swarm) {
   if (swarm) replicateResource(discoveryBase, swarm);
 }
 
-export { joinDiscovery, joinDiscoveryTopic, scanDiscovery, ensureDiscoveryReplication };
+async function ensureTrackedDiscovery({
+  discoveries,
+  discoveryIndex,
+  corestore,
+  swarm,
+  key,
+  cursors = {},
+  namespacePrefix = "disc"
+}) {
+  const keyBuf = b4a.isBuffer(key) ? key : idEncoding.decode(key);
+  const keyZ32 = idEncoding.encode(keyBuf);
+  const existing = discoveryIndex.get(keyZ32);
+  if (existing) return existing;
+
+  const disc = await ensureDiscoverySurface(
+    corestore.namespace(`${namespacePrefix}-${keyZ32}`),
+    { key: keyBuf },
+    swarm
+  );
+  ensureDiscoveryReplication(disc, swarm);
+  joinDiscovery(swarm, disc);
+
+  const tracked = { disc, cursor: cursors[keyZ32] ?? 0, key: keyZ32 };
+  discoveries.push(tracked);
+  discoveryIndex.set(keyZ32, tracked);
+  return tracked;
+}
+
+export {
+  joinDiscovery,
+  joinDiscoveryTopic,
+  scanDiscovery,
+  ensureDiscoveryReplication,
+  ensureTrackedDiscovery
+};
