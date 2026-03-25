@@ -7,7 +7,7 @@ import createFakeSwarm from "fakeswarm";
 import idEncoding from "hypercore-id-encoding";
 import Autobase from "autobase";
 
-import { ensureDiscoverySurface, addConcern, addWriter as addDiscoveryWriter } from "../../src/discovery.js";
+import { ensureDiscoverySurface, addConcern, addDiscovery, addWriter as addDiscoveryWriter } from "../../src/discovery.js";
 import {
   ensureConcernSurface,
   publishJobWork,
@@ -49,6 +49,11 @@ async function createConcernHost({ swarm }) {
   await base.ready();
   await base.update();
   return { dir, store, base, key: base.key };
+}
+
+async function advertiseDiscovery(disc, keyBuf) {
+  await addDiscovery(disc, keyBuf, "nested-discovery");
+  await disc.update({ wait: true });
 }
 
 function cleanupDirs(...dirs) {
@@ -235,6 +240,101 @@ test("projector only after warm; ctx guarded; publish APIs validate", async (t) 
     await closeSwarm(swarmHost);
     await closeSwarm(swarmRunner);
     cleanupDirs(discDir, runnerDir, concern?.dir);
+  }
+});
+
+test("nested discovery warms downstream concern and persists child discovery across restart", async (t) => {
+  let swarmHost;
+  let swarmRunner;
+  let rootDir;
+  let rootStore;
+  let rootDisc;
+  let childDir;
+  let childStore;
+  let childDisc;
+  let firstConcern;
+  let secondConcern;
+  let runnerDir;
+  let runnerStore;
+  let runner1;
+  let runner2;
+
+  try {
+    ({ a: swarmHost, b: swarmRunner } = makeSwarmPair());
+    ({ dir: rootDir, store: rootStore, disc: rootDisc } = await createDiscoveryHost({ swarm: swarmHost }));
+    ({ dir: childDir, store: childStore, disc: childDisc } = await createDiscoveryHost({ swarm: swarmHost }));
+
+    await advertiseDiscovery(rootDisc, childDisc.key);
+    await safeFlush(swarmHost);
+    await safeFlush(swarmRunner);
+
+    runnerDir = mkTmp("runner-");
+    runnerStore = new Corestore(runnerDir);
+    await runnerStore.ready?.();
+
+    firstConcern = await createConcernHost({ swarm: swarmHost });
+    await addConcern(childDisc, idEncoding.encode(firstConcern.key), "nested-first");
+    await childDisc.update({ wait: true });
+
+    runner1 = await createRunner({
+      role: "org",
+      corestore: runnerStore,
+      swarm: swarmRunner,
+      discoveryKeys: [idEncoding.encode(rootDisc.key)],
+      warmN: 2,
+      warmupBudget: warmBudget({ maxTicks: 0, maxMs: 0, minViewReadable: false }),
+      retryPolicy: { cooldownMs: 1 },
+      projector: async () => {},
+    });
+
+    await tickUntil(runner1, swarmHost, swarmRunner, { tries: 20 });
+    t.ok(
+      runner1.getStatus().warm.some((w) => w.keyHex === b4a.toString(firstConcern.key, "hex") && w.status === "warmed"),
+      "runner warms concern advertised on child discovery"
+    );
+    t.ok(
+      Object.prototype.hasOwnProperty.call(runner1.getStatus().cursors, idEncoding.encode(childDisc.key)),
+      "runner state tracks discovered child discovery"
+    );
+
+    await closeMaybe(runner1);
+    runner1 = null;
+
+    secondConcern = await createConcernHost({ swarm: swarmHost });
+    await addConcern(childDisc, idEncoding.encode(secondConcern.key), "nested-second");
+    await childDisc.update({ wait: true });
+
+    runner2 = await createRunner({
+      role: "org",
+      corestore: runnerStore,
+      swarm: swarmRunner,
+      discoveryKeys: [idEncoding.encode(rootDisc.key)],
+      warmN: 3,
+      warmupBudget: warmBudget({ maxTicks: 0, maxMs: 0, minViewReadable: false }),
+      retryPolicy: { cooldownMs: 1 },
+      projector: async () => {},
+    });
+
+    await tickUntil(runner2, swarmHost, swarmRunner, { tries: 20 });
+    t.ok(
+      runner2.getStatus().warm.some((w) => w.keyHex === b4a.toString(secondConcern.key, "hex") && w.status === "warmed"),
+      "runner restart still scans persisted child discovery membership"
+    );
+  } finally {
+    await closeMaybe(runner2);
+    await closeMaybe(runner1);
+    await closeMaybe(runnerStore);
+    await closeMaybe(firstConcern?.base);
+    await closeMaybe(firstConcern?.store);
+    await closeMaybe(secondConcern?.base);
+    await closeMaybe(secondConcern?.store);
+    await closeMaybe(rootDisc);
+    await closeMaybe(rootStore);
+    await closeMaybe(childDisc);
+    await closeMaybe(childStore);
+    await closeSwarm(swarmHost);
+    await closeSwarm(swarmRunner);
+    cleanupDirs(rootDir, childDir, runnerDir, firstConcern?.dir, secondConcern?.dir);
   }
 });
 

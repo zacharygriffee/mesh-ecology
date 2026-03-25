@@ -1,10 +1,12 @@
 import b4a from "b4a";
+import { KIND } from "../../discovery.js";
 
 // INTENT(phase-b5-style): Isolate runner tick orchestration while preserving discovery cursor updates, warm/revisit ordering, projector invocation order, and persistence timing.
 
 function createTick({
   discoveries,
   scanDiscovery,
+  ensureTrackedDiscovery,
   warmset,
   warmupBudget,
   retryPolicy,
@@ -20,16 +22,23 @@ function createTick({
 }) {
   return async function tick() {
     // scan discovery
-    for (const d of discoveries) {
+    const currentDiscoveries = discoveries.slice();
+    const pendingDiscoveries = [];
+    for (const d of currentDiscoveries) {
       await d.disc.update({ wait: true }).catch(() => {});
       let latest = d.cursor;
       for await (const entry of scanDiscovery(d.disc, { since: d.cursor })) {
         latest = entry.seq;
-        if (entry.t === 2 /* concern */) {
+        if (entry.t === KIND.CONCERN) {
           await warmset.warm(entry.k32, { warmupBudget, retryPolicy });
+        } else if (entry.t === KIND.DISCOVERY) {
+          pendingDiscoveries.push(entry.k32);
         }
       }
       d.cursor = latest;
+    }
+    for (const keyBuf of pendingDiscoveries) {
+      await ensureTrackedDiscovery(keyBuf);
     }
 
     // revisit any non-warmed items (skipped cooldown handled inside warm)

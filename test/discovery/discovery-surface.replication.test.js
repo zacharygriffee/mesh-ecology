@@ -4,7 +4,7 @@ import crypto from "crypto";
 import idEncoding from "hypercore-id-encoding";
 import createFakeSwarm from "fakeswarm";
 
-import { ensureDiscoverySurface, addConcern, addWriter } from "../../src/discovery.js";
+import { ensureDiscoverySurface, addConcern, addDiscovery, addWriter } from "../../src/discovery.js";
 import { replicateResource } from "../../src/replicateBase.js";
 import { mkTemp } from "../_helpers/fs.js";
 import { flushBoth } from "../_helpers/swarm.js";
@@ -95,6 +95,48 @@ test("ensureDiscoverySurface remains backward compatible without swarm (external
         return findByKey(discB.view, concernKey);
     });
     t.ok(rec && rec.t === 2);
+
+    await discA.close();
+    await discB.close();
+    await storeA.close();
+    await storeB.close();
+    await swarmA.close();
+    await swarmB.close();
+    ta.cleanup();
+    tb.cleanup();
+});
+
+test("addDiscovery replicates discovery advertisements", async (t) => {
+    const topics = new Map();
+    const swarmA = createFakeSwarm({ topics });
+    const swarmB = createFakeSwarm({ topics });
+    const topic = crypto.randomBytes(32);
+    swarmA.join(topic);
+    swarmB.join(topic);
+
+    const ta = mkTemp("disc-repl-");
+    const tb = mkTemp("disc-repl-");
+    const storeA = new Corestore(ta.dir);
+    const storeB = new Corestore(tb.dir);
+    await storeA.ready?.();
+    await storeB.ready?.();
+
+    const discA = await ensureDiscoverySurface(storeA, {}, swarmA);
+    const discB = await ensureDiscoverySurface(storeB, { key: discA.key }, swarmB);
+
+    await flushBoth(swarmA, swarmB);
+
+    const nestedKey = idEncoding.encode(crypto.randomBytes(32));
+    await addDiscovery(discA, nestedKey, "nested-from-A");
+    await discA.update({ wait: true });
+
+    await flushBoth(swarmA, swarmB);
+
+    const rec = await waitFor(async () => {
+        await discB.update({ wait: true });
+        return findByKey(discB.view, nestedKey);
+    });
+    t.ok(rec && rec.t === 1);
 
     await discA.close();
     await discB.close();

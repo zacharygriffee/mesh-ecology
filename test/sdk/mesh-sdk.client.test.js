@@ -121,6 +121,7 @@ test("sdk state() returns schema v1 keys and no doctor artifacts", async (t) => 
     t.ok(out.flags && typeof out.flags === "object");
     t.ok(out.topology && Array.isArray(out.topology.concernKeys));
     t.ok(Array.isArray(out.sideEffects));
+    t.ok(out.sideEffects.includes("mesh-sdk is non-mutating: no writer admission, no process lifecycle control, no doctor artifacts"));
     t.ok(out.artifacts && out.artifacts.summary && out.artifacts.items);
     t.ok(Array.isArray(out.checks));
     t.ok(Array.isArray(out.processes));

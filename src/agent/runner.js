@@ -1,9 +1,7 @@
 import b4a from "b4a";
-import idEncoding from "hypercore-id-encoding";
 import Hyperbee from "hyperbee";
 import { ensureAgentStateSurface, readAgentState } from "./state.js";
-import { ensureDiscoverySurface } from "../discovery.js";
-import { joinDiscovery, ensureDiscoveryReplication, scanDiscovery } from "./discovery-roam.js";
+import { scanDiscovery, ensureTrackedDiscovery as ensureTrackedDiscoveryBase } from "./discovery-roam.js";
 import { createWarmsetManager, defaultOpenConcern } from "./warmset.js";
 import { normalizeWarmN, normalizeWarmupBudget, normalizeRetryPolicy } from "./config.js";
 import {
@@ -108,14 +106,30 @@ async function createRunner({
   const prior = (await readAgentState(agentState)) || { cursors: {}, warm: { meta: {} }, accepted: {}, ratified: {} };
   const projectorFn = projector ?? getDefaultProjector(role);
 
+  const discoveryCursors = prior.cursors ?? {};
   const discoveries = [];
+  const discoveryIndex = new Map();
   for (const key of discoveryKeys) {
-    const buf = b4a.isBuffer(key) ? key : idEncoding.decode(key);
-    const z = idEncoding.encode(buf);
-    const disc = await ensureDiscoverySurface(corestore.namespace(`${role}-disc-${z}`), { key: buf }, swarm);
-    ensureDiscoveryReplication(disc, swarm);
-    joinDiscovery(swarm, disc);
-    discoveries.push({ disc, cursor: prior.cursors[z] ?? 0, key: z });
+    await ensureTrackedDiscoveryBase({
+      discoveries,
+      discoveryIndex,
+      corestore,
+      swarm,
+      key,
+      cursors: discoveryCursors,
+      namespacePrefix: `${role}-disc`
+    });
+  }
+  for (const key of Object.keys(discoveryCursors)) {
+    await ensureTrackedDiscoveryBase({
+      discoveries,
+      discoveryIndex,
+      corestore,
+      swarm,
+      key,
+      cursors: discoveryCursors,
+      namespacePrefix: `${role}-disc`
+    });
   }
 
   const openConcern = await defaultOpenConcern({ cs: corestore, swarm });
@@ -212,6 +226,15 @@ async function createRunner({
   const tick = createTick({
     discoveries,
     scanDiscovery,
+    ensureTrackedDiscovery: async (key) => ensureTrackedDiscoveryBase({
+      discoveries,
+      discoveryIndex,
+      corestore,
+      swarm,
+      key,
+      cursors: discoveryCursors,
+      namespacePrefix: `${role}-disc`
+    }),
     warmset,
     warmupBudget: budget,
     retryPolicy: retry,
