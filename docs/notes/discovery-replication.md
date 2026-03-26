@@ -1,3 +1,5 @@
+> Status: Informative snapshot. Keep aligned with current runner/runner-shell behavior; if it conflicts with `docs/v0-locked.md`, `docs/protocol.md`, or runtime support docs, those win.
+
 Discovery & Replication — Current Mental Model (snapshot)
 ========================================================
 
@@ -25,19 +27,19 @@ Warm-window / bounded rechecks (liveness)
 - Warm-window and bounded rechecks are equivalent liveness strategies: warm-window amortizes latency across multiple concerns; bounded rechecks revisit cold surfaces within the same pass.
 - When using a warm window, bound the window and close on eviction to drop handlers/FDs cleanly (replicateBase cleanup covers this).
 
-Traversal state (current vs planned rewrite)
-- Organism/ratifier still expect Bee-style `{ key, value }`; they must be updated to consume `{ t, k32, v }` from Hypercore streams in the upcoming warm-window rewrite.
-- Discovery and concern cold-opens should both follow: open → `updateWithTimeout` → optional bounded `getWait` on first read to tolerate swarm latency.
+Traversal state (current)
+- Runner shell and full runner now consume discovery entries as `{ t, k32, v }` and persist discovery cursors locally.
+- Nested discovery advertisements are followed in both runner shell and full runner paths.
+- Discovery and concern cold-opens should both follow: open/update, then bounded rechecks where needed to tolerate swarm latency.
 
 Risks / status
 - Replication listener accumulation: resolved by replicateBase guard.
-- Discovery reader shape mismatch: still a risk until rewrite.
 - Traversal liveness under cold-open latency: mitigated by warm-window or bounded rechecks; otherwise false negatives are possible.
 - Nondeterminism: limited to network ordering; replicateBase does not amplify it.
 - Concern invariants: optimistic validation preserved; single-genesis guard still unclear; propose/commit boundary still blurred in organism logic.
 - Genesis/gas/bond semantics: explicitly out of scope for this snapshot.
 
-Guardrails for the rewrite
+Guardrails for ongoing traversal work
 - Discovery stays advertising-only; traversal order must not imply scheduling/priority.
 - Use sequence-index cursors for discovery; dedupe by `k32` so re-advertise does not raise priority.
 - Apply warm-window or bounded rechecks for liveness; bound opens and close on eviction to avoid FD leaks.

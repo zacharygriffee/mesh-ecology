@@ -1,9 +1,11 @@
+> Status: Time-bound audit report from 2026-02-24. Treat repo-state remarks here as historical unless they match current docs/code.
+
 # Hetzner Packages v0 Compliance Audit
 
 Date: 2026-02-24
 Type: Static assurance audit (no behavior changes)
 Primary sources: `docs/v0-locked.md`, `docs/protocol.md`
-Informative source status: `docs/runbooks/bring-up.md` available; `README.md` not present in repo root at audit time.
+Informative source status at audit time: `docs/runbooks/bring-up.md` available; `README.md` was not yet present in repo root.
 
 ## Executive Summary
 

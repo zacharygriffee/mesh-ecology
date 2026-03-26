@@ -114,7 +114,7 @@
 - **Intuition:** Something that persists and takes responsibility.
 - **Definition:** A persistent identity that:
   - observes Discovery Registries and Concern Surfaces,
-  - authorizes irreversible mutations on Concern Surfaces by publishing signed events (any gas/cost framing is FUTURE/non-active in v0),
+  - may participate in irreversible Concern Surface mutation by proposing signed events, with acceptance determined by concern apply (any gas/cost framing is FUTURE/non-active in v0),
   - survives agent churn and state loss.
 - **Important:**
   - The organism is an **authority boundary**.

@@ -1,18 +1,20 @@
+> Status: Recon / design audit. This is useful background for HashPort design, not the canonical SDK API reference.
+
 # HashPort Audit (Recon Only)
 
 ## Scope
 - Requested scan targets:
   - `packages/mesh-sdk/**`
-  - `packages/mesh-v0-2/**` (not present in this repo)
   - runtime code at repo root `src/**` (actual ecology runtime location)
 
 ## What Exists Today
 
 ### `packages/mesh-sdk/**`
 - No direct hashing imports/usages found (`hash`, `blake`, `hypercore-crypto`, `sodium`, `createHash`).
-- `mesh-sdk` currently reaches hashing logic transitively by loading runtime modules from root `src/`:
-  - `packages/mesh-sdk/src/platform/node/index.js` -> dynamic import of `src/concern.js`
-  - `packages/mesh-sdk/src/platform/bare/index.js` -> dynamic import of `src/concern.js`
+- Current exported SDK path is:
+  - `packages/mesh-sdk/index.js` -> `packages/mesh-sdk/src/client.js`
+  - `packages/mesh-sdk/src/client.js` -> `packages/mesh-sdk/src/entry/node.js`
+- The SDK now carries explicit HashPort helpers in-package rather than relying on the old platform-path wording used in this audit.
 
 ### Runtime hashing usage (`src/**`)
 - `src/concern/keys.js`
@@ -51,10 +53,9 @@ Dependency chain in this repo:
   - Node path: `lib/node.js` (uses `fs`/`url`)
 - Risk is manageable if imports go through package entrypoints (normal resolution); avoid deep-importing Node-specific internals.
 
-## Recommendation (for future implementation)
+## Recommendation (still relevant)
 
 - Canonical HashPort backend for **both Node and Bare**: `hypercore-crypto.hash(...)`.
 - Do not introduce `node:crypto` hashing in `mesh-sdk` core.
 - Keep core builtin-free by injecting hash capability via platform adapter/port wiring (no runtime sniffing).
 - If HashPort moves into published `@mesh/mesh-sdk` source (instead of only transitive runtime usage), add explicit `hypercore-crypto` dependency in `packages/mesh-sdk/package.json`.
-

@@ -1,3 +1,6 @@
+> Status: Historical investigation notes. Useful for background, but not the source of truth for current runtime behavior.
+> Current runtime truth lives in `docs/v0-locked.md`, `docs/protocol.md`, `docs/runtime-support-policy.md`, and the active runner tests.
+
 # Organism/Ratifier Grounding — discovery.js & concern.js
 _Repo state investigated on February 10, 2026. Updated after discovery replication mini-change._
 
@@ -68,7 +71,7 @@ Identity notes:
 - **ackWriter auto-admission:** Optimistic PUB/RAT call `host.ackWriter(from.key)` after validation, effectively admitting proposers post-acceptance; no revocation or allowlist. Guard: design acceptance criteria carefully; isolate corestores per role to avoid key bleed.
 - **`base.key` vs `from.key` confusion:** No explicit checks; authority not derived from `base.key`. Guard: document that authority = writer admission + writable local core; do not rely on base key equality.
 - **Shared corestores:** ensure per-role namespaces; cross-role sharing could let a process be writable unintentionally.
-- **Discovery replication omission:** `ensureDiscoverySurface` does not wire replication; forgetting to replicate yields local-only view. Guard: callers must wire swarm replication explicitly.
+- **Discovery replication posture:** `ensureDiscoverySurface` can now auto-wire replication when a swarm is supplied; callers without a swarm still need to wire replication explicitly.
 
 ## What organism/ratifier must call (warm, propose, observe)
 - **Warm a concern:** `ensureConcernSurface(corestore.namespace("org-"+k), swarm, {key})`; wait `ready()`, ensure replication via provided `swarm`; read strict state with `getStrictState(view, v)` or `getStrictStateFromView` pattern used in apply; establish view readers (`getJobView`, `getPublishViewByJob` or `createReadStream` on `pub/` and `rat/` subtrees).
@@ -81,6 +84,6 @@ Identity notes:
 - Authority operations require `concern.writable` and are limited to job creation, writer admission, and strict-state genesis helpers.
 
 ## Questions / Ambiguities
-- Discovery replication path is absent in `ensureDiscoverySurface`; confirm whether callers must always supply external replication (lines 68-83).
+- Discovery replication convenience now exists when a swarm is supplied; the remaining choice is whether a caller wants that convenience path or explicit external replication.
 - No explicit cursor persistence for discovery scans; intended pattern is caller-local cursors—should a shared helper exist?
 - Writer revocation is not addressed; `host.addWriter` admits but no removal path is present (lines 85-99, 613-618).
