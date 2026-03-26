@@ -2,15 +2,8 @@ name: Mesh SDK Bare CI
 
 on:
   push:
-    paths:
-      - "packages/mesh-sdk/**"
-      - "test/sdk/**"
-      - "test/bare-labs/**"
-      - "src/**"
-      - "package.json"
-      - "package-lock.json"
-      - ".github/workflows/mesh-sdk-bare.yml"
-  pull_request:
+    branches:
+      - main
     paths:
       - "packages/mesh-sdk/**"
       - "test/sdk/**"

@@ -2,7 +2,27 @@ name: CI
 
 on:
   push:
+    branches:
+      - main
+    paths:
+      - "src/**"
+      - "test/**"
+      - "packages/**"
+      - "scripts/**"
+      - "deploy/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/ci.yml"
   pull_request:
+    paths:
+      - "src/**"
+      - "test/**"
+      - "packages/**"
+      - "scripts/**"
+      - "deploy/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/ci.yml"
   workflow_dispatch:
 
 jobs:
@@ -20,10 +40,41 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run deterministic suite (fake transport only)
-        run: LAB_REAL=0 npm test -- --runInBand
+      - name: Run fast deterministic subset
+        run: |
+          node test/run-files.js \
+            test/concern \
+            test/discovery \
+            test/encoding \
+            test/utility \
+            test/validity \
+            test/mesh-operator-cli.help.test.js
+
+  unit-medium:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run broader deterministic runtime coverage
+        run: |
+          node test/run-files.js \
+            test/runner \
+            test/ratifier \
+            test/replication \
+            test/sdk/mesh-sdk.client.test.js
 
   labs-network-strict:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -41,7 +92,8 @@ jobs:
         run: CI=1 node test/run-files.js test/labs/
 
   ecology-smoke:
-    needs: [unit-fast]
+    if: github.event_name != 'pull_request'
+    needs: [unit-fast, unit-medium]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
