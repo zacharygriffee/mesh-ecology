@@ -56,14 +56,14 @@ Purpose: keep the engine boring, compatibility-first, and explicit about authori
 
 ## Phase 5: Migration and deprecation
 
-- [ ] Define a repo deprecation policy for engine-facing consumers.
+- [x] Define a repo deprecation policy for engine-facing consumers.
   - Accept when: docs describe `supported`, `legacy-supported`, `deprecated`, and make clear that removal is not part of this pass.
 - [x] Write a short sibling-repo migration note:
   - current usage
   - preferred usage
   - whether any code changes are required
   - Accept when: a dependent repo owner can tell whether they need no changes, low-touch changes, or later adoption work.
-- [ ] Provide compatibility shims where needed for env/config normalization and legacy naming.
+- [x] Provide compatibility shims where needed for env/config normalization and legacy naming.
   - Accept when: migration can happen incrementally instead of atomically.
 
 ## Phase 6: Validation

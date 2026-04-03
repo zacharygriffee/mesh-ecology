@@ -2,6 +2,8 @@ Runtime Consumer Migration Note
 
 Purpose: help sibling repos and direct engine consumers understand what remains supported, what is now preferred, and what should move to the packs-led control plane.
 
+For new consumers, start with `docs/use-cases/` before reading this migration note. This document assumes you already know which role or integration posture you need.
+
 ## Short version
 
 - No immediate consumer rewrite is required in this pass.
@@ -32,6 +34,11 @@ Legacy-supported means:
 - not removed in this pass,
 - not the preferred path for new usage.
 
+Deprecated means:
+- still works in this pass,
+- must name a preferred replacement,
+- is not part of the removal scope for this pass.
+
 ## Preferred usage by consumer type
 
 ### App/client consumers
@@ -57,6 +64,7 @@ Keep working for now:
 Low-touch follow-up:
 - move human-facing or environment-heavy orchestration to the packs repo first
 - keep `mesh-operator-cli` for compatibility and narrow stateless authority cases
+- prefer camelCase JSON config fields for runtime-owned config files while keeping current uppercase env vars and legacy aliases working
 
 ### Engine-adjacent sibling repos
 
@@ -88,6 +96,7 @@ Defer until a future pass:
 - removal of legacy engine entrypoints
 - migration-helper automation
 - config normalization shims tied to packs deprecation work
+- any shift from `legacy-supported` to `deprecated` without real dependent-consumer evidence
 
 ## Explicit non-goals for this pass
 

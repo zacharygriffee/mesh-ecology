@@ -2,10 +2,13 @@ Runtime Support Policy
 
 Purpose: define the supported engine-facing surface for the current compatibility-first simplification pass, without changing v0 runtime semantics.
 
+Practical consumer guidance now starts in `docs/use-cases/` for adjacent repos, app integrators, concern owners, and actor authors. This document remains the engine-facing support policy underneath that layer.
+
 ## Status classes
 
 - `supported`: preferred engine-facing surfaces for current consumers and sibling repos.
 - `legacy-supported`: still supported for compatibility, but not the preferred path for new usage.
+- `deprecated`: still works in the current pass, but should not be chosen for new usage and should carry an explicit replacement path in docs.
 - `internal`: implementation detail; do not build new consumers against it.
 
 This document is lower precedence than:
@@ -52,6 +55,24 @@ Legacy-supported means:
 - keep working,
 - do not remove in this pass,
 - do not treat as the preferred path for new consumers.
+
+## Deprecation policy for this pass
+
+- Deprecation is documentation and migration posture first, not removal.
+- A surface should normally move through:
+  - `supported`
+  - `legacy-supported`
+  - `deprecated`
+- Mark something `deprecated` only when all of the following are true:
+  - a preferred replacement is already documented
+  - a currently working consumer path still exists
+  - the migration can happen incrementally rather than atomically
+- `deprecated` in this pass means:
+  - still works
+  - not preferred for new usage
+  - must name the preferred replacement in docs
+  - must not be removed as part of this pass
+- Removal requires a later explicit proposal and is out of scope for this compatibility-first todo.
 
 ## Internal surfaces
 
