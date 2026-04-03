@@ -4,10 +4,21 @@ Mesh ecology v0 repository.
 
 ## Start Here
 
+- Practical use cases (adjacent repos, apps, actor authors): [docs/use-cases/README.md](docs/use-cases/README.md)
 - Doc precedence map: [docs/doc-map.md](docs/doc-map.md)
 - Locked invariants (highest authority): [docs/v0-locked.md](docs/v0-locked.md)
 - Protocol details: [docs/protocol.md](docs/protocol.md)
 - Bring-up guide ("run the four"): [docs/runbooks/bring-up.md](docs/runbooks/bring-up.md)
+
+## Use Cases
+
+- Use-case hub: [docs/use-cases/README.md](docs/use-cases/README.md)
+- Choose your role: [docs/use-cases/choose-your-role.md](docs/use-cases/choose-your-role.md)
+- Observer/client: [docs/use-cases/observer-client.md](docs/use-cases/observer-client.md)
+- App exposes a concern: [docs/use-cases/app-exposes-concern.md](docs/use-cases/app-exposes-concern.md)
+- Organism author: [docs/use-cases/organism-author.md](docs/use-cases/organism-author.md)
+- Ratifier author: [docs/use-cases/ratifier-author.md](docs/use-cases/ratifier-author.md)
+- Adjacent repo integration: [docs/use-cases/adjacent-repo-integration.md](docs/use-cases/adjacent-repo-integration.md)
 
 ## Runtime + Operator Docs
 
