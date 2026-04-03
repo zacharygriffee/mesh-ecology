@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "repoRoot": "/opt/mesh-v0-2",
+  "paths": {
+    "configDir": "/etc/mesh",
+    "dataDir": "/var/lib/mesh",
+    "systemdDir": "/etc/systemd/system"
+  },
+  "discoveryHost": {
+    "config": {
+      "discoveryKey": "<authority-discovery-z32>",
+      "swarmTopics": [
+        "a1ne51fem6j8tmsbh9ho8ja4ro8r3r4kpjy9jp5bbjkc6iagrfwo"
+      ],
+      "swarmBootstrap": [],
+      "discoveryWriters": [],
+      "updateIntervalMs": 1500,
+      "heartbeatMs": 30000
+    }
+  },
+  "concernHost": {
+    "config": {
+      "concernKeys": [
+        "<concern-z32>"
+      ],
+      "swarmTopics": [
+        "a1ne51fem6j8tmsbh9ho8ja4ro8r3r4kpjy9jp5bbjkc6iagrfwo"
+      ],
+      "swarmBootstrap": [],
+      "concernWriters": [],
+      "validation": 1,
+      "updateIntervalMs": 1500,
+      "heartbeatMs": 30000
+    }
+  }
+}

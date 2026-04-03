@@ -17,6 +17,13 @@ The script writes:
 
 Bundle contents are allowlisted and deterministic by file selection/order. It excludes `.git/`, `node_modules/`, `dist/`, `.DS_Store`, `tmp/`, `logs/`, corestore data dirs, env files, and key/cert-like files.
 
+The runtime-owned host primitives are included in the bundle:
+
+- `scripts/runtime-host-apply.js`
+- `scripts/runtime-host-report.js`
+- `deploy/config/runtime-hosts.example.json`
+- `docs/runbooks/runtime-host-primitives.md`
+
 ## Upload Bundle To Hetzner (scp)
 
 Example:

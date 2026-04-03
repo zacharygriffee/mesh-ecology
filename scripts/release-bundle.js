@@ -14,11 +14,14 @@ const ROOT_ALLOWLIST = [
   'packages',
   'deploy',
   'docs/runbooks/hetzner-deploy.md',
+  'docs/runbooks/runtime-host-primitives.md',
   'docs/v0-locked.md',
   'docs/protocol.md',
   'scripts/audit-hetzner-packages.js',
   'scripts/audit-hetzner-packages.expected.json',
   'scripts/smoke-hetzner-packages.js',
+  'scripts/runtime-host-apply.js',
+  'scripts/runtime-host-report.js',
   'scripts/release-bundle.js',
   'package.json'
 ]

@@ -92,11 +92,11 @@ Purpose: keep the engine boring, compatibility-first, and explicit about authori
 
 ## Phase 7: Runtime-owned host primitives for higher-layer wrappers
 
-- [ ] Define one stable runtime-owned host spec covering discovery-host and concern-host config shape, required fields, and runtime-owned filesystem layout.
+- [x] Define one stable runtime-owned host spec covering discovery-host and concern-host config shape, required fields, and runtime-owned filesystem layout.
   - Accept when: higher layers can point to one boring spec for runtime-owned host fields and layout and do not need to reconstruct host setup from scripts or internal directories.
-- [ ] Add one supported install/apply primitive that materializes runtime-owned config, units, and directories on a destination machine without adding orchestration or rollout semantics.
+- [x] Add one supported install/apply primitive that materializes runtime-owned config, units, and directories on a destination machine without adding orchestration or rollout semantics.
   - Accept when: packs or a product repo can hand runtime-owned host config to the engine in one supported shape without introducing new control-plane semantics.
-- [ ] Add one machine-readable inspect/report primitive for deployed runtime hosts.
+- [x] Add one machine-readable inspect/report primitive for deployed runtime hosts.
   - Report only bounded runtime facts such as:
     - host mode
     - configured discovery/concern keys
@@ -105,7 +105,7 @@ Purpose: keep the engine boring, compatibility-first, and explicit about authori
     - writability or admission-relevant state
   - Must report observed runtime facts only; no remediation steps, rollout advice, or control-plane decisions.
   - Accept when: higher layers can consume one bounded report surface as proof input without custom parsing or orchestration-specific adapters.
-- [ ] Define one stable packaging boundary for runtime-owned host binaries, config templates, unit files, install/apply assets, and their ownership relative to packs/product overlays.
+- [x] Define one stable packaging boundary for runtime-owned host binaries, config templates, unit files, install/apply assets, and their ownership relative to packs/product overlays.
   - Explicitly separate:
     - `mesh-v0-2` runtime-owned artifacts and primitives
     - `mesh-ecology-packs` deployment strategy and wrapping

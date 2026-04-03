@@ -8,12 +8,15 @@
     "deploy/systemd/mesh-discovery-host.service",
     "deploy/systemd/mesh-concern-host.service",
     "deploy/install.sh",
+    "scripts/runtime-host-apply.js",
+    "scripts/runtime-host-report.js",
     "scripts/smoke-hetzner-packages.js",
     "src/discovery.js",
     "src/concern.js",
     "src/concern/apply.js",
     "src/replicateBase.js",
-    "src/ensureCorestore.js"
+    "src/ensureCorestore.js",
+    "src/util/runtime-host-spec.js"
   ],
   "invariants": {
     "I1": {

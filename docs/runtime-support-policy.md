@@ -41,6 +41,10 @@ If this document conflicts with higher-precedence runtime docs, the higher-prece
 - Runner shell creation through `createRunnerShell(...)` for discovery roaming and concern warming without projector publishing.
 - Runner creation through `createRunner(...)` for projector-driven proposer flows.
 - Mesh SDK entrypoints through package exports in `packages/mesh-sdk`.
+- Runtime-owned host primitives documented in `docs/runbooks/runtime-host-primitives.md`:
+  - host spec
+  - apply primitive
+  - inspect/report primitive
 
 These are the supported engine-facing behavior families for the current pass. New docs and new consumers should center these concepts rather than lower-level plumbing.
 
@@ -96,6 +100,7 @@ Internal does not mean unstable at runtime; it means new sibling consumers shoul
 | `createRunner(...)` | supported | Canonical projector runner path. |
 | `createRunnerShell(...)` | supported | Canonical coordination-only shell path. |
 | `packages/mesh-sdk` exports | supported | Preferred client-facing surface. |
+| runtime-owned host spec/apply/report primitives | supported | Boring runtime-owned substrate for higher-layer wrappers. |
 | `mesh-operator-cli` runtime usage | legacy-supported | Supported, but likely to be wrapped by packs-led control plane. |
 | `src/organism.legacy.js` | legacy-supported | Compatibility only. |
 | `src/ratifier.legacy.js` | legacy-supported | Compatibility only. |
