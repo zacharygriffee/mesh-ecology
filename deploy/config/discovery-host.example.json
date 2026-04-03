@@ -1,11 +1,11 @@
 {
-  "CORESTORE_DIR": "/var/lib/mesh/discovery",
+  "corestoreDir": "/var/lib/mesh/discovery",
   "discoveryKey": "<authority-discovery-z32>",
-  "SWARM_TOPICS": [
+  "swarmTopics": [
     "a1ne51fem6j8tmsbh9ho8ja4ro8r3r4kpjy9jp5bbjkc6iagrfwo"
   ],
-  "SWARM_BOOTSTRAP": [],
-  "DISCOVERY_WRITERS": [],
-  "UPDATE_INTERVAL_MS": 1500,
-  "HEARTBEAT_MS": 30000
+  "swarmBootstrap": [],
+  "discoveryWriters": [],
+  "updateIntervalMs": 1500,
+  "heartbeatMs": 30000
 }

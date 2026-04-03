@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { writeSync } from "fs";
 import { access, readFile } from "fs/promises";
 import { setTimeout as delay } from "timers/promises";
 import path from "path";
@@ -21,6 +22,7 @@ import {
   getRatView
 } from "../../../src/concern.js";
 import { defaultTopics } from "../../../src/util/createKeyPair.js";
+import { normalizeOperatorCliConfig } from "../../../src/util/runtime-host-config.js";
 import { waitForDurability } from "../lib/waitForDurability.js";
 
 const DEFAULT_CONFIG_PATH = "/etc/mesh/operator-cli.json";
@@ -29,7 +31,7 @@ const DEFAULT_TOPIC_Z32 = idEncoding.encode(defaultTopics(1)[0]);
 const DEFAULT_TIMEOUT_MS = 15_000;
 
 function printHelp() {
-  console.log([
+  writeSync(process.stdout.fd, [
     "mesh discovery advertise-concern --discovery <z32> --concern <z32> [--label text] [--wait|--no-wait] [--min-peers n] [--timeout-ms n] [--config path]",
     "mesh discovery advertise-discovery --discovery <z32> --nested <z32> [--label text] [--wait|--no-wait] [--min-peers n] [--timeout-ms n] [--config path]",
     "mesh discovery add-writer --discovery <z32> --writer <z32> [--wait|--no-wait] [--min-peers n] [--timeout-ms n] [--config path]",
@@ -51,13 +53,12 @@ function printHelp() {
     "  SWARM_BOOTSTRAP=<host:port,host:port,...>",
     "  SWARM_SEED_HEX=<64-hex-bytes>",
     "  OPERATOR_TIMEOUT_MS=15000"
-  ].join("\n"));
+  ].join("\n") + "\n");
 }
 
 function parseArgs(argv) {
   if (argv.length === 0 || argv[0] === "-h" || argv[0] === "--help") {
-    printHelp();
-    process.exit(0);
+    return { command: "help", flags: {} };
   }
 
   let command = "";
@@ -120,51 +121,20 @@ async function loadJsonIfPresent(filePath) {
   return parsed;
 }
 
-function toList(value) {
-  if (!value) return [];
-  if (Array.isArray(value)) return value.map((x) => String(x).trim()).filter(Boolean);
-  return String(value)
-    .split(",")
-    .map((x) => x.trim())
-    .filter(Boolean);
-}
-
 function toPositiveInt(value, fallback) {
   const n = Number(value);
   if (!Number.isFinite(n) || n <= 0) return fallback;
   return Math.floor(n);
 }
 
-function decodeSeedHex(value) {
-  if (!value) return null;
-  const normalized = String(value).trim();
-  if (!/^[0-9a-fA-F]{64}$/.test(normalized)) {
-    throw new Error("SWARM_SEED_HEX must be 64 hex chars");
-  }
-  return Buffer.from(normalized, "hex");
-}
-
 function normalizeConfig({ fileConfig, env }) {
-  const corestoreDir = path.resolve(String(env.CORESTORE_DIR || fileConfig.CORESTORE_DIR || DEFAULT_CORESTORE_DIR));
-
-  const fileTopics = toList(fileConfig.SWARM_TOPICS || fileConfig.SWARM_TOPIC);
-  const envTopics = toList(env.SWARM_TOPICS || env.SWARM_TOPIC);
-  const swarmTopics = envTopics.length ? envTopics : (fileTopics.length ? fileTopics : [DEFAULT_TOPIC_Z32]);
-
-  const fileBootstrap = toList(fileConfig.SWARM_BOOTSTRAP);
-  const envBootstrap = toList(env.SWARM_BOOTSTRAP);
-  const swarmBootstrap = envBootstrap.length ? envBootstrap : fileBootstrap;
-
-  const timeoutMs = toPositiveInt(env.OPERATOR_TIMEOUT_MS || fileConfig.OPERATOR_TIMEOUT_MS, DEFAULT_TIMEOUT_MS);
-  const swarmSeed = decodeSeedHex(env.SWARM_SEED_HEX || fileConfig.SWARM_SEED_HEX || "");
-
-  return {
-    corestoreDir,
-    swarmTopics,
-    swarmBootstrap,
-    timeoutMs,
-    swarmSeed
-  };
+  return normalizeOperatorCliConfig({
+    fileConfig,
+    env,
+    defaultCorestoreDir: DEFAULT_CORESTORE_DIR,
+    defaultTopicZ32: DEFAULT_TOPIC_Z32,
+    defaultTimeoutMs: DEFAULT_TIMEOUT_MS
+  });
 }
 
 async function createSwarm(config) {
@@ -515,6 +485,10 @@ async function cmdStatus({ flags, config }) {
 
 async function main() {
   const { command, flags } = parseArgs(process.argv.slice(2));
+  if (command === "help") {
+    printHelp();
+    return;
+  }
   const configPath = flags.config || process.env.MESH_OPERATOR_CONFIG || DEFAULT_CONFIG_PATH;
   const fileConfig = await loadJsonIfPresent(configPath);
   const config = normalizeConfig({ fileConfig, env: process.env });

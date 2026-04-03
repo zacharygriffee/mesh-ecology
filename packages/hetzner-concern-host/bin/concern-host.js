@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { writeSync } from "fs";
 import { access, readFile } from "fs/promises";
 import { setTimeout as delay } from "timers/promises";
 import path from "path";
@@ -9,6 +10,7 @@ import idEncoding from "hypercore-id-encoding";
 import { ensureCorestore } from "../../../src/ensureCorestore.js";
 import { ensureConcernSurface, addWriter, getJobView, getPublishView, getRatView } from "../../../src/concern.js";
 import { defaultTopics } from "../../../src/util/createKeyPair.js";
+import { normalizeConcernHostConfig } from "../../../src/util/runtime-host-config.js";
 
 const DEFAULT_CONFIG_PATH = "/etc/mesh/concern-host.json";
 const DEFAULT_CORESTORE_DIR = "/var/lib/mesh/concern";
@@ -17,7 +19,7 @@ const DEFAULT_HEARTBEAT_MS = 30_000;
 const DEFAULT_TOPIC_Z32 = idEncoding.encode(defaultTopics(1)[0]);
 
 function parseArgs(argv) {
-  const out = { configPath: process.env.CONCERN_HOST_CONFIG || DEFAULT_CONFIG_PATH };
+  const out = { configPath: process.env.CONCERN_HOST_CONFIG || DEFAULT_CONFIG_PATH, help: false };
   for (let i = 0; i < argv.length; i++) {
     const part = argv[i];
     if (part === "--config") {
@@ -26,8 +28,8 @@ function parseArgs(argv) {
       continue;
     }
     if (part === "-h" || part === "--help") {
-      printHelp();
-      process.exit(0);
+      out.help = true;
+      continue;
     }
     throw new Error(`unknown argument: ${part}`);
   }
@@ -35,7 +37,7 @@ function parseArgs(argv) {
 }
 
 function printHelp() {
-  console.log([
+  writeSync(process.stdout.fd, [
     "Usage: concern-host [--config /etc/mesh/concern-host.json]",
     "",
     "Environment overrides:",
@@ -49,7 +51,7 @@ function printHelp() {
     "  VALIDATION=1",
     "  UPDATE_INTERVAL_MS=1500",
     "  HEARTBEAT_MS=30000"
-  ].join("\n"));
+  ].join("\n") + "\n");
 }
 
 async function loadJsonIfPresent(filePath) {
@@ -68,69 +70,15 @@ async function loadJsonIfPresent(filePath) {
   return parsed;
 }
 
-function toList(value) {
-  if (!value) return [];
-  if (Array.isArray(value)) return value.map((x) => String(x).trim()).filter(Boolean);
-  return String(value)
-    .split(",")
-    .map((x) => x.trim())
-    .filter(Boolean);
-}
-
-function toPositiveInt(value, fallback) {
-  const n = Number(value);
-  if (!Number.isFinite(n) || n <= 0) return fallback;
-  return Math.floor(n);
-}
-
-function decodeSeedHex(value) {
-  if (!value) return null;
-  const normalized = String(value).trim();
-  if (!/^[0-9a-fA-F]{64}$/.test(normalized)) {
-    throw new Error("SWARM_SEED_HEX must be 64 hex chars");
-  }
-  return Buffer.from(normalized, "hex");
-}
-
 function normalizeConfig({ fileConfig, env }) {
-  const corestoreDir = path.resolve(String(env.CORESTORE_DIR || fileConfig.CORESTORE_DIR || DEFAULT_CORESTORE_DIR));
-
-  const fileConcerns = toList(
-    fileConfig.CONCERN_KEYS ||
-    fileConfig.concerns ||
-    fileConfig.CONCERNS
-  );
-  const envConcerns = toList(env.CONCERN_KEYS || env.CONCERNS);
-  const concerns = envConcerns.length ? envConcerns : fileConcerns;
-
-  const fileTopics = toList(fileConfig.SWARM_TOPICS || fileConfig.SWARM_TOPIC);
-  const envTopics = toList(env.SWARM_TOPICS || env.SWARM_TOPIC);
-  const swarmTopics = envTopics.length ? envTopics : (fileTopics.length ? fileTopics : [DEFAULT_TOPIC_Z32]);
-
-  const fileBootstrap = toList(fileConfig.SWARM_BOOTSTRAP);
-  const envBootstrap = toList(env.SWARM_BOOTSTRAP);
-  const swarmBootstrap = envBootstrap.length ? envBootstrap : fileBootstrap;
-
-  const fileWriters = toList(fileConfig.CONCERN_WRITERS);
-  const envWriters = toList(env.CONCERN_WRITERS);
-  const concernWriters = envWriters.length ? envWriters : fileWriters;
-
-  const validation = String(env.VALIDATION || fileConfig.VALIDATION || "1").trim();
-  const updateIntervalMs = toPositiveInt(env.UPDATE_INTERVAL_MS || fileConfig.UPDATE_INTERVAL_MS, DEFAULT_UPDATE_INTERVAL_MS);
-  const heartbeatMs = toPositiveInt(env.HEARTBEAT_MS || fileConfig.HEARTBEAT_MS, DEFAULT_HEARTBEAT_MS);
-  const swarmSeed = decodeSeedHex(env.SWARM_SEED_HEX || fileConfig.SWARM_SEED_HEX || "");
-
-  return {
-    corestoreDir,
-    concerns,
-    swarmTopics,
-    swarmBootstrap,
-    concernWriters,
-    validation,
-    updateIntervalMs,
-    heartbeatMs,
-    swarmSeed
-  };
+  return normalizeConcernHostConfig({
+    fileConfig,
+    env,
+    defaultCorestoreDir: DEFAULT_CORESTORE_DIR,
+    defaultTopicZ32: DEFAULT_TOPIC_Z32,
+    defaultUpdateIntervalMs: DEFAULT_UPDATE_INTERVAL_MS,
+    defaultHeartbeatMs: DEFAULT_HEARTBEAT_MS
+  });
 }
 
 async function createSwarm(config) {
@@ -196,7 +144,11 @@ async function applyWriterConfig(base, writers) {
 }
 
 async function main() {
-  const { configPath } = parseArgs(process.argv.slice(2));
+  const { configPath, help } = parseArgs(process.argv.slice(2));
+  if (help) {
+    printHelp();
+    return;
+  }
   const fileConfig = await loadJsonIfPresent(configPath);
   const config = normalizeConfig({ fileConfig, env: process.env });
 

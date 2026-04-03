@@ -49,7 +49,7 @@ Purpose: keep the engine boring, compatibility-first, and explicit about authori
 
 - [x] Keep existing low-level APIs working while documenting preferred terminology and preferred entrypoints.
   - Accept when: no currently working sibling consumer path breaks.
-- [ ] Add compatibility aliases or normalization helpers where naming cleanup would otherwise force code churn.
+- [x] Add compatibility aliases or normalization helpers where naming cleanup would otherwise force code churn.
   - Accept when: old names still resolve and new names are the documented preference.
 - [x] Keep warmset/retry/dedupe/journal plumbing out of the public mental model.
   - Accept when: public docs center only discovery, concern, roles, actors, and materialization proof.
@@ -89,3 +89,26 @@ Purpose: keep the engine boring, compatibility-first, and explicit about authori
 - `npm test -- test/ratifier/agent-runner-ratifier-phase4.test.js`
 - `npm test -- test/discovery/discovery-surface.replication.test.js`
 - `npm test -- test/sdk/mesh-sdk.client.test.js`
+
+## Phase 7: Runtime-owned host primitives for higher-layer wrappers
+
+- [ ] Define one stable runtime-owned host spec covering discovery-host and concern-host config shape, required fields, and runtime-owned filesystem layout.
+  - Accept when: higher layers can point to one boring spec for runtime-owned host fields and layout and do not need to reconstruct host setup from scripts or internal directories.
+- [ ] Add one supported install/apply primitive that materializes runtime-owned config, units, and directories on a destination machine without adding orchestration or rollout semantics.
+  - Accept when: packs or a product repo can hand runtime-owned host config to the engine in one supported shape without introducing new control-plane semantics.
+- [ ] Add one machine-readable inspect/report primitive for deployed runtime hosts.
+  - Report only bounded runtime facts such as:
+    - host mode
+    - configured discovery/concern keys
+    - readiness or sync state
+    - visibility state
+    - writability or admission-relevant state
+  - Must report observed runtime facts only; no remediation steps, rollout advice, or control-plane decisions.
+  - Accept when: higher layers can consume one bounded report surface as proof input without custom parsing or orchestration-specific adapters.
+- [ ] Define one stable packaging boundary for runtime-owned host binaries, config templates, unit files, install/apply assets, and their ownership relative to packs/product overlays.
+  - Explicitly separate:
+    - `mesh-v0-2` runtime-owned artifacts and primitives
+    - `mesh-ecology-packs` deployment strategy and wrapping
+    - product-repo overlays
+  - Accept when: sibling repos no longer need to guess which deployment files or steps are engine-owned versus higher-layer owned.
+- Gate: do not add wrapper hooks unless a named packs/product migration is blocked and the hook can be defined without introducing packs-shaped semantics.

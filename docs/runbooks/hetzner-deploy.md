@@ -19,13 +19,20 @@ Example templates:
 - `deploy/config/discovery-host.example.json`
 - `deploy/config/concern-host.example.json`
 
+Config naming preference:
+
+- JSON config files prefer camelCase keys such as `corestoreDir`, `swarmTopics`, `concernKeys`, and `updateIntervalMs`.
+- Environment variables remain uppercase, for example `CORESTORE_DIR`, `SWARM_TOPICS`, and `CONCERN_KEYS`.
+- Legacy uppercase JSON fields and legacy concern aliases (`concerns`, `CONCERNS`) remain accepted for compatibility.
+
 ## Mirror Mode Contract
 
 - Discovery host mirrors an existing discovery base by key.
-  - Set `DISCOVERY_KEY`/`discoveryKey`.
+  - Set `DISCOVERY_KEY` in env or `discoveryKey` in JSON config.
   - If key is missing, host fails fast unless explicit create mode is requested (`--create` or `DISCOVERY_CREATE=1`).
 - Concern host mirrors existing concern base keys.
-  - Set `CONCERN_KEYS`/`concerns` (legacy `CONCERNS` also accepted).
+  - Set `CONCERN_KEYS` in env or `concernKeys` in JSON config.
+  - Legacy `concerns`/`CONCERNS` remain accepted for compatibility.
   - Empty list fails fast.
   - Host still enforces max 1 concern by default.
 
@@ -53,13 +60,13 @@ Edit `/etc/mesh/discovery-host.json`:
 
 ```json
 {
-  "CORESTORE_DIR": "/var/lib/mesh/discovery",
+  "corestoreDir": "/var/lib/mesh/discovery",
   "discoveryKey": "<authority-discovery-z32>",
-  "SWARM_TOPICS": ["<topic-z32>"],
-  "SWARM_BOOTSTRAP": [],
-  "DISCOVERY_WRITERS": ["<optional-operator-writer-z32>"],
-  "UPDATE_INTERVAL_MS": 1500,
-  "HEARTBEAT_MS": 30000
+  "swarmTopics": ["<topic-z32>"],
+  "swarmBootstrap": [],
+  "discoveryWriters": ["<optional-operator-writer-z32>"],
+  "updateIntervalMs": 1500,
+  "heartbeatMs": 30000
 }
 ```
 
@@ -109,14 +116,14 @@ Edit `/etc/mesh/concern-host.json`:
 
 ```json
 {
-  "CORESTORE_DIR": "/var/lib/mesh/concern",
-  "concerns": ["<concern-z32>"],
-  "SWARM_TOPICS": ["<topic-z32>"],
-  "SWARM_BOOTSTRAP": [],
-  "CONCERN_WRITERS": ["<optional-operator-writer-z32>"],
-  "VALIDATION": 1,
-  "UPDATE_INTERVAL_MS": 1500,
-  "HEARTBEAT_MS": 30000
+  "corestoreDir": "/var/lib/mesh/concern",
+  "concernKeys": ["<concern-z32>"],
+  "swarmTopics": ["<topic-z32>"],
+  "swarmBootstrap": [],
+  "concernWriters": ["<optional-operator-writer-z32>"],
+  "validation": 1,
+  "updateIntervalMs": 1500,
+  "heartbeatMs": 30000
 }
 ```
 
