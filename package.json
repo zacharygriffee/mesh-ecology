@@ -27,6 +27,6 @@
   },
   "devDependencies": {
     "brittle": "^3.19.1",
-    "fakeswarm": "^0.2.0"
+    "fakeswarm": "^0.2.1"
   }
 }
