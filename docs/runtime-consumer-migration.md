@@ -4,6 +4,11 @@ Purpose: help sibling repos and direct engine consumers understand what remains 
 
 For new consumers, start with `docs/use-cases/` before reading this migration note. This document assumes you already know which role or integration posture you need.
 
+Ownership split for this note:
+- `mesh-v0-2` owns supported runtime surfaces and engine semantics
+- `mesh-ecology-packs` owns the preferred control-plane path for operator workflows
+- adjacent repos own app canon, product semantics, and repo-specific policy
+
 ## Short version
 
 - No immediate consumer rewrite is required in this pass.

@@ -2,6 +2,33 @@
 
 Mesh ecology v0 repository.
 
+Naming note:
+- use `mesh-ecology` for the GitHub repo name or repo URL
+- use `mesh-v0-2` for the local checkout and workspace directory
+- sibling repos should refer to this checkout as `(adjacent mesh-v0-2)` when describing it as an adjacent dependency
+
+## Owns
+
+- primitive runtime and coordination semantics
+- locked invariants, protocol rules, and authority behavior
+- supported engine surfaces, SDK, and operator CLI packages
+- runtime-facing runbooks, labs, and compatibility notes
+
+## Does Not Own
+
+- control-plane posture, deployment-program canon, or pack taxonomy
+- adjacent product canon or app-specific policy
+- supervisory instance composition owned by `mindful`
+- product-bridge doctrine owned by `interactive-fiction-concern-surface`
+- ontology and substrate-research canon owned by `Virtualia`
+
+## Adjacent Repos
+
+- `mesh-ecology-packs` is the preferred control-plane layer for operational workflows and adjacent-repo conventions
+- `mindful` consumes this repo as a read-only and authority-capable substrate, not as a place to redefine deployment posture
+- `interactive-fiction-concern-surface` consumes this repo as adjacent runtime infrastructure through explicit bridge boundaries
+- `Virtualia` may pressure substrate language, but it does not own runtime or control-plane canon here
+
 ## Start Here
 
 - Practical use cases (adjacent repos, apps, actor authors): [docs/use-cases/README.md](docs/use-cases/README.md)
