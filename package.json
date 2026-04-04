@@ -17,12 +17,12 @@
     "autobase": "^7.25.1",
     "b4a": "^1.7.3",
     "compact-encoding": "^2.18.0",
-    "corestore": "^7.7.0",
+    "corestore": "^7.9.2",
     "dotenv": "^17.2.3",
     "hyperbee": "^2.27.3",
     "hypercore-crypto": "^3.6.1",
     "hypercore-id-encoding": "^1.3.0",
-    "hyperswarm": "^4.16.0",
+    "hyperswarm": "^4.17.0",
     "localdrive": "^2.2.0"
   },
   "devDependencies": {
