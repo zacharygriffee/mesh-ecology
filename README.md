@@ -2,6 +2,30 @@
 
 Mesh ecology v0 repository.
 
+Naming note:
+- use `mesh-ecology` for the GitHub repo name or repo URL
+- use `mesh-v0-2` for the local checkout and workspace directory
+- sibling repos should refer to this checkout as `(adjacent mesh-v0-2)` when describing it as an adjacent dependency
+
+## Owns
+
+- primitive runtime and coordination semantics
+- locked invariants, protocol rules, and authority behavior
+- supported engine surfaces, SDK, and operator CLI packages
+- runtime-facing runbooks, labs, and compatibility notes
+
+## Does Not Own
+
+- control-plane posture, deployment-program canon, or pack taxonomy
+- adjacent product canon or app-specific policy
+- supervisory composition, bridge doctrine, or research canon that belongs outside the runtime boundary
+
+## Adjacent Repos
+
+- Adjacent repos should enter through supported runtime surfaces, not engine internals.
+- Higher-level control-plane, product, and research doctrine should remain authoritative in their own repos.
+- Use [docs/use-cases/README.md](docs/use-cases/README.md) to choose the appropriate integration seam.
+
 ## Start Here
 
 - Practical use cases (adjacent repos, apps, actor authors): [docs/use-cases/README.md](docs/use-cases/README.md)

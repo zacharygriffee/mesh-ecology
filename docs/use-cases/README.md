@@ -2,6 +2,12 @@
 
 Purpose: give adjacent repos and app authors the shortest practical path into `mesh-v0-2` without making them start from engine internals.
 
+Boundary reminder:
+- `mesh-v0-2` owns runtime fabric and supported engine surfaces
+- `mesh-ecology-packs` owns the preferred control-plane posture
+- adjacent repos own their own app canon and domain semantics
+- when an adjacent repo refers to this local checkout in prose, prefer `(adjacent mesh-v0-2)`
+
 Start here by intent:
 
 - I only need read-only observation or app-side participation:

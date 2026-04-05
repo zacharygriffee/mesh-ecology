@@ -79,7 +79,7 @@ Purpose: keep the engine boring, compatibility-first, and explicit about authori
 
 ## Coordination notes
 
-- Primary product/control-plane work lives in [`../mesh-ecology-packs/todo.md`](../mesh-ecology-packs/todo.md).
+- Primary product/control-plane work lives in the `mesh-ecology-packs` TODO.
 - This repo should only absorb enough API/docs cleanup to support the packs-first control plane.
 - Any task here that would change protocol semantics is out of scope and must be split into a separate explicit proposal.
 

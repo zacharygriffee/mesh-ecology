@@ -114,7 +114,7 @@
 TASK: Create local authority Discovery + Concern surfaces, mirror them on a remote host, and perform authority writes with durability barriers using current repo interfaces only.
 
 REPO
-- /home/zevilz/WebstormProjects/mesh-v0-2
+- <mesh-v0-2-local-root>
 
 HARD RULES
 1) No protocol/runtime semantic changes.
