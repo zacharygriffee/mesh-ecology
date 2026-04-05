@@ -18,16 +18,13 @@ Naming note:
 
 - control-plane posture, deployment-program canon, or pack taxonomy
 - adjacent product canon or app-specific policy
-- supervisory instance composition owned by `mindful`
-- product-bridge doctrine owned by `interactive-fiction-concern-surface`
-- ontology and substrate-research canon owned by `Virtualia`
+- supervisory composition, bridge doctrine, or research canon that belongs outside the runtime boundary
 
 ## Adjacent Repos
 
-- `mesh-ecology-packs` is the preferred control-plane layer for operational workflows and adjacent-repo conventions
-- `mindful` consumes this repo as a read-only and authority-capable substrate, not as a place to redefine deployment posture
-- `interactive-fiction-concern-surface` consumes this repo as adjacent runtime infrastructure through explicit bridge boundaries
-- `Virtualia` may pressure substrate language, but it does not own runtime or control-plane canon here
+- Adjacent repos should enter through supported runtime surfaces, not engine internals.
+- Higher-level control-plane, product, and research doctrine should remain authoritative in their own repos.
+- Use [docs/use-cases/README.md](docs/use-cases/README.md) to choose the appropriate integration seam.
 
 ## Start Here
 
