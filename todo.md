@@ -112,3 +112,18 @@ Purpose: keep the engine boring, compatibility-first, and explicit about authori
     - product-repo overlays
   - Accept when: sibling repos no longer need to guess which deployment files or steps are engine-owned versus higher-layer owned.
 - Gate: do not add wrapper hooks unless a named packs/product migration is blocked and the hook can be defined without introducing packs-shaped semantics.
+
+## Near-future follow-up: explicit writer removal wrappers
+
+- [ ] Add supported runtime wrappers for writer removal on discovery and concern surfaces.
+  - Scope:
+    - expose `removeWriter` alongside existing `addWriter` support for `src/discovery.js` and concern publish helpers
+    - keep the change compatibility-first and runtime-boring
+    - do not broaden into new control-plane semantics or UI vocabulary here
+  - Motivation:
+    - `mesh-ecology-packs` now has live proof for discovery and concern add-writer pairing using explicit `base.local.key`
+    - remove-writer is currently blocked because Autobase supports it underneath, but `mesh-v0-2` does not expose a supported wrapper/API for it
+  - Accept when:
+    - discovery and concern each expose one supported remove-writer path
+    - runtime docs make clear that writer removal is an explicit authority-side capability change
+    - higher layers can prove removal without reaching into Autobase internals directly
