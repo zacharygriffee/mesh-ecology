@@ -1,5 +1,8 @@
 # TODO
 
-## Documentation Hygiene
+This file is a compatibility pointer only.
 
-- [ ] Review the new documentation posture, `docs:check` coverage, and cross-repo hygiene rules before broadening runtime-facing docs or adjacent integration guidance again.
+The authoritative root TODO for `mesh-v0-2` is [todo.md](./todo.md).
+
+Do not add new tasks here.
+Add and maintain all repo-root TODO items in `todo.md` only.

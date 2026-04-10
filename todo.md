@@ -83,6 +83,10 @@ Purpose: keep the engine boring, compatibility-first, and explicit about authori
 - This repo should only absorb enough API/docs cleanup to support the packs-first control plane.
 - Any task here that would change protocol semantics is out of scope and must be split into a separate explicit proposal.
 
+## Documentation Hygiene
+
+- [ ] Review the new documentation posture, `docs:check` coverage, and cross-repo hygiene rules before broadening runtime-facing docs or adjacent integration guidance again.
+
 ## Validation set
 
 - `npm test -- test/runner/agent-runner-runner-api.test.js`
@@ -127,3 +131,31 @@ Purpose: keep the engine boring, compatibility-first, and explicit about authori
     - discovery and concern each expose one supported remove-writer path
     - runtime docs make clear that writer removal is an explicit authority-side capability change
     - higher layers can prove removal without reaching into Autobase internals directly
+
+## Doctrine Corrections – Actor Model Enforcement
+
+- [ ] Define and document that direct store access across runtimes is a violation regardless of read/write mode.
+- [ ] State without exception: `readonly != safe`; `readonly != permitted`.
+- [ ] Restrict direct store access to diagnostic tooling only and mark all such tooling as `non-canonical`, `non-precedent`, and `non-candidate`.
+- [ ] Declare that all cross-runtime truth must be acquired only via replication (swarm) or explicit protocol surfaces.
+- [ ] Explicitly forbid filesystem-based truth acquisition across runtimes, store path handoffs, and any actor contract that depends on another runtime's store root.
+- [ ] Require all actors to join mesh surfaces to obtain truth.
+- [ ] Define extract-only runtimes as non-actors: `read -> dump -> exit`, no participation, no contribution back.
+- [ ] State that leechy runtimes are probes, not actors, and are permanently excluded from candidacy.
+- [ ] Require every runtime to be classified as exactly one of: `canonical actor`, `auxiliary`, or `probe/test`.
+- [ ] Define `canonical actor` as store-isolated, mesh-participatory, boundedly contributive, and non-extractive.
+- [ ] Define `auxiliary` as ecosystem-supporting only and never canonical by default.
+- [ ] Define `probe/test` as diagnostic or extractive and permanently non-candidate.
+- [ ] Ban `probe/test -> canonical actor` drift.
+- [ ] Require probes/tests to live under a clearly non-runtime directory or namespace such as `probes/`, `labs/`, or `test/`.
+- [ ] Require README warnings on probes/tests: `not production pattern` and `not actor precedent`.
+- [ ] Audit all docs/examples that demonstrate direct store access and relabel them as diagnostic-only.
+- [ ] Ensure no getting-started, example, or first-live flow teaches store access as a valid actor pattern.
+- [ ] Separate diagnostic tooling from runtime actors in doctrine, naming, and presentation.
+- [ ] Disallow ambiguous naming that presents diagnostics as actors or presents observers as canonical by default.
+
+### Repo-Specific Corrections
+
+- [ ] Prevent example organisms from being interpreted as canonical actors.
+- [ ] Mark all diagnostics, including inspect scripts, as `non-candidate` and `non-precedent`.
+- [ ] Ensure examples and starter flows point to mesh participation or explicit protocol surfaces, never direct store inspection, as the normative actor model.
