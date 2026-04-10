@@ -33,6 +33,7 @@ Mesh does not give you:
 - start by reusing existing organisms/ratifiers where they already fit
 - search for an existing generic actor or convention before writing a repo-specific one
 - translate mesh vocabulary into your repo’s canon only at explicit adapter boundaries
+- acquire cross-runtime truth through mesh participation or supported APIs, not by reading another runtime's storage
 
 ## What You Own
 
@@ -57,6 +58,7 @@ Mesh does not give you:
 - do not treat operator tooling as the source of truth for your repo
 - do not build a second coordination protocol just because mesh terminology feels unfamiliar
 - do not default to individualistic organisms or ratifiers when the behavior could be donated upstream
+- do not pass store roots, copied data dirs, or filesystem inspection around as an integration seam
 
 ## Minimal Path
 

@@ -24,6 +24,7 @@ Model from existing ratifiers before inventing a new shape.
 - ratifier is a proposer helper, not the deciding authority
 - selectivity belongs in ratifier logic
 - acceptance proof is derived-view materialization of `rat/...`
+- actor truth comes from discovery/concern participation, not another runtime's store root
 - new ratifier work should search for an existing generic fit before specializing
 
 ## What You Own
@@ -46,7 +47,10 @@ Model from existing ratifiers before inventing a new shape.
 - do not put ratifier-specific selectivity into concern apply
 - do not assume your ratifier becomes authoritative by being careful
 - do not conflate observed PUB existence with accepted RAT existence
+- do not read another runtime's store as a shortcut for actor truth
 - do not author a one-off ratifier before checking whether the policy already exists or can be donated upstream
+
+Diagnostic or teaching examples that open local stores for demonstration are not canonical actor precedent unless they explicitly say otherwise.
 
 ## Minimal Path
 
@@ -58,6 +62,7 @@ Model from existing ratifiers before inventing a new shape.
 
 ## Related Docs
 
+- [../canonical-mesh-participation.md](../canonical-mesh-participation.md)
 - [../organism-contract.md](../organism-contract.md)
 - [../protocol.md](../protocol.md)
 - [../runtime-support-policy.md](../runtime-support-policy.md)

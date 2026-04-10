@@ -3,6 +3,7 @@ Runtime Support Policy
 Purpose: define the supported engine-facing surface for the current compatibility-first simplification pass, without changing v0 runtime semantics.
 
 Practical consumer guidance now starts in `docs/use-cases/` for adjacent repos, app integrators, concern owners, and actor authors. This document remains the engine-facing support policy underneath that layer.
+Canonical actor-participation doctrine lives in `docs/canonical-mesh-participation.md`.
 
 ## Status classes
 
@@ -14,7 +15,7 @@ Practical consumer guidance now starts in `docs/use-cases/` for adjacent repos, 
 This document is lower precedence than:
 1. `docs/v0-locked.md`
 2. `docs/protocol.md`
-3. `docs/runbooks/bring-up.md`
+3. `docs/canonical-mesh-participation.md`
 
 If this document conflicts with higher-precedence runtime docs, the higher-precedence docs win.
 
@@ -33,6 +34,9 @@ If this document conflicts with higher-precedence runtime docs, the higher-prece
 - Replica default posture is `readonly`.
 - Writability is an authority-side, explicit capability grant.
 - Organism and ratifier runtimes are proposer helpers by default; they do not assume writer authority.
+- Any mesh-facing actor must obtain cross-runtime truth through mesh participation on supported surfaces or supported SDK/operator APIs.
+- Cross-runtime filesystem inspection, store-root handoff, copied local storage, or direct-store shortcuts are not supported actor patterns.
+- Existing low-level mechanics tests may prove physics here without constituting canonical mesh proof by themselves.
 
 ## Supported surfaces
 

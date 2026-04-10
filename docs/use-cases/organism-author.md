@@ -24,6 +24,7 @@ Copy from existing patterns before inventing a new structure.
 - organism is a proposer helper by default
 - writable elevation is explicit and advanced
 - acceptance proof is derived-view materialization, not append success
+- actor truth comes from discovery/concern participation, not another runtime's store root
 - new organism work should search for an existing generic fit before specializing
 
 ## What You Own
@@ -48,7 +49,10 @@ Copy from existing patterns before inventing a new structure.
 - do not call success on append as acceptance
 - do not move policy into concern apply
 - do not assume writable authority just because an organism can propose work
+- do not read another runtime's store as a shortcut for actor truth
 - do not author a new organism family before checking whether an existing or generic version already fits
+
+Diagnostic or teaching examples that open local stores for demonstration are not canonical actor precedent unless they explicitly say otherwise.
 
 ## Minimal Path
 
@@ -60,6 +64,7 @@ Copy from existing patterns before inventing a new structure.
 
 ## Related Docs
 
+- [../canonical-mesh-participation.md](../canonical-mesh-participation.md)
 - [../organism-contract.md](../organism-contract.md)
 - [../protocol.md](../protocol.md)
 - [../runtime-support-policy.md](../runtime-support-policy.md)

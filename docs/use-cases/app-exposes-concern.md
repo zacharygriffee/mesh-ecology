@@ -21,6 +21,7 @@ In practice:
 - concern authority stays explicit and operator-controlled
 - generic organisms/ratifiers are helpers, not the deciding authority
 - replicas remain `readonly` by default
+- mesh-facing actors must learn concern truth through discovery/concern participation, not by reading another runtime's local storage
 
 ## What You Own
 
@@ -41,6 +42,7 @@ In practice:
 - do not invent a parallel server/client protocol when a concern surface is the real shared lane
 - do not make organisms or ratifiers the deciding authority
 - do not encode edge policy into discovery
+- do not treat copied data dirs, store roots, or direct store inspection as an actor integration seam
 
 ## Minimal Path
 
@@ -52,6 +54,7 @@ In practice:
 
 ## Related Docs
 
+- [../canonical-mesh-participation.md](../canonical-mesh-participation.md)
 - [../protocol.md](../protocol.md)
 - [../runbooks/cli-authority.md](../runbooks/cli-authority.md)
 - [../runtime-support-policy.md](../runtime-support-policy.md)

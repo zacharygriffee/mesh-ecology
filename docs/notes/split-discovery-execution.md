@@ -5,6 +5,8 @@ Scope
 - Default, v0-aligned strategy to separate discovery scanning from execution for organism/ratifier.
 - No protocol changes; discovery stays advertising-only and append-only.
 - Queue is local-only; not published to any surface.
+- Status: informative legacy demo strategy, not a normative actor guide.
+- "observer" below means a mesh-participating scan role, not a direct-store probe or filesystem reader.
 
 1) Current behavior re: duplicates / guards
 - Optimistic pubs: concern.apply enforces job exists and uniqueness per (jobKey, fromKey, attemptToken); duplicates are rejected before ack/apply.

@@ -1,5 +1,6 @@
 Organism Traversal Contract (reference, v0-aligned)
 
+- Actor posture: traversal is a mesh-facing activity. Obtain truth through discovery/concern participation and revalidation on those surfaces, never through another runtime's local storage.
 - Cursoring: traverse discovery/concern surfaces by sequence index; persist cursors locally (no protocol state). Use append-only ordering; do not assume key lookups.
 - Dedupe: deduplicate advertisements and concerns locally by 32-byte key (buffer equality). Re-advertisements may appear multiple times; retain latest cursor and drop repeats per pass.
 - Budgets: enforce local ceilings for (a) registry opens per pass, (b) concerns opened per pass, (c) entries scanned per surface. Budget misses should defer work to later passes.

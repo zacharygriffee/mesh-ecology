@@ -2,6 +2,7 @@
 
 Date: 2026-02-24
 Scope: reconnaissance only (no protocol/runtime changes)
+Status: legacy investigation note. Any low-level peer inspection or lab-only durability polling here is probe/test technique, not canonical actor precedent.
 
 ## 1) Repo Test Harness Summary
 

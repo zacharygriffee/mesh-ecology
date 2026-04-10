@@ -32,12 +32,15 @@ Keep in mind:
 - Concern is the bounded shared coordination surface.
 - Replicas default to `readonly`.
 - Writable authority is explicit.
+- Mesh-facing actors must obtain shared truth through mesh participation or supported surfaces, never through another runtime's local storage.
 - `mesh-ecology-packs` is the preferred control-plane layer for operational workflows.
 - Reusable actor and convention intake should prefer packs before physics.
+- Physics proof and canonical mesh proof are different proof lanes; low-level mechanics proof is necessary but not sufficient for canonical actor validity.
 
 Deep references:
 
 - locked invariants: [../v0-locked.md](../v0-locked.md)
 - protocol snapshot: [../protocol.md](../protocol.md)
+- canonical participation doctrine: [../canonical-mesh-participation.md](../canonical-mesh-participation.md)
 - runtime support policy: [../runtime-support-policy.md](../runtime-support-policy.md)
 - runtime consumer migration note: [../runtime-consumer-migration.md](../runtime-consumer-migration.md)

@@ -32,6 +32,7 @@ Naming note:
 - Doc precedence map: [docs/doc-map.md](docs/doc-map.md)
 - Locked invariants (highest authority): [docs/v0-locked.md](docs/v0-locked.md)
 - Protocol details: [docs/protocol.md](docs/protocol.md)
+- Canonical participation doctrine: [docs/canonical-mesh-participation.md](docs/canonical-mesh-participation.md)
 - Bring-up guide ("run the four"): [docs/runbooks/bring-up.md](docs/runbooks/bring-up.md)
 
 ## Use Cases
@@ -46,6 +47,7 @@ Naming note:
 
 ## Runtime + Operator Docs
 
+- Canonical participation doctrine: [docs/canonical-mesh-participation.md](docs/canonical-mesh-participation.md)
 - CLI authority runbook: [docs/runbooks/cli-authority.md](docs/runbooks/cli-authority.md)
 - Hetzner deploy runbook: [docs/runbooks/hetzner-deploy.md](docs/runbooks/hetzner-deploy.md)
 - Release bundle runbook: [docs/runbooks/release-bundle.md](docs/runbooks/release-bundle.md)

@@ -1,8 +1,11 @@
 # Prompt Audit: Authority → Mirror Bootstrap
 
+Status: informative dev audit only. This file is not a normative actor guide and not canonical actor precedent.
+
 ## Scope Note
 - Requested input path `/mnt/data/codex-authority-mirror-bootstrap-prompt.md` is not present in this environment.
 - Audit source used: `docs/dev/codex-authority-mirror-bootstrap-prompt.md` (current in-repo draft).
+- Any mention of copied corestore state or snapshot seeding here is diagnostic/bootstrap-only, not the preferred actor model.
 
 ## Prompt Audit Report
 
@@ -276,7 +279,7 @@ STEP 6: Verify mirrored concern can read materialized job state
 
 PACKAGING NOTE (IMPORTANT)
 - Preferred mode: ship software + config + surface key(s), then replicate logs over swarm.
-- Optional only: copy corestore snapshot to seed faster catch-up; this is not required for mirror correctness.
+- Optional only: copy corestore snapshot to seed faster catch-up; this is not required for mirror correctness and is not canonical actor precedent.
 
 OUTPUT FORMAT
 1) DISCOVERY_KEY and CONCERN_KEY_Z32 values.

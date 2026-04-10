@@ -14,6 +14,25 @@ You are here if:
 
 This means hygiene lands here as guidance, not as new protocol behavior.
 
+## Actor Model Enforcement
+
+- direct store access across runtimes is a violation regardless of read/write mode
+- `readonly` does not mean safe and does not mean permitted
+- canonical actors obtain cross-runtime truth only by joining mesh surfaces or using explicit protocol surfaces
+- filesystem handoffs, store-root sharing, and "read another runtime's store" shortcuts are not actor patterns
+- extract-only runtimes are probes, not actors: read, dump, exit
+- diagnostic tooling is `non-canonical`, `non-precedent`, and `non-candidate`
+
+## Runtime Classification
+
+Every runtime should be classed as exactly one of:
+
+1. `canonical actor`: store-isolated, mesh-participatory, boundedly contributive, and non-extractive.
+2. `auxiliary`: ecosystem-supporting only and not canonical by default.
+3. `probe/test`: diagnostic or extractive and permanently non-candidate.
+
+Promotion from `probe/test` to `canonical actor` is not allowed by drift or convenience. If a runtime needs canonical status, rewrite it to the canonical actor posture instead of re-labeling the same pattern.
+
 ## Default Authoring Posture
 
 - search before you specialize
@@ -43,10 +62,13 @@ Choose the narrowest destination that still preserves reuse:
 - do not treat private convenience as proof that a concept belongs in physics
 - do not move control-plane intake or deployment policy into `mesh-v0-2`
 - do not promote a repo-specific concern convention into core unless it carries invariant-level meaning
+- do not treat direct filesystem or store inspection as a valid actor integration seam
+- do not let a probe, observer, or diagnostic helper read like a canonical actor example
 
 ## Related Docs
 
 - [adjacent-repo-integration.md](adjacent-repo-integration.md)
 - [organism-author.md](organism-author.md)
 - [ratifier-author.md](ratifier-author.md)
+- [../canonical-mesh-participation.md](../canonical-mesh-participation.md)
 - [../runtime-support-policy.md](../runtime-support-policy.md)

@@ -127,7 +127,15 @@ LAB_CALIBRATE=1 LAB_CALIBRATE_SAMPLES=5 npx brittle test/labs/<file>.test.js
 
 ## Debugging / Inspecting Work Journal
 
-Use the work-journal inspector to see runner-local workflow persistence (`api.work`) without reading raw Hyperbee keys:
+Use the work-journal inspector only as local diagnostic tooling for runner-local workflow persistence (`api.work`):
+
+- it reads one runtime's local work journal only
+- it is not protocol truth and not acceptance proof
+- it is `non-canonical`, `non-precedent`, and not a valid actor pattern for cross-runtime truth
+
+If you need actor truth, join the relevant mesh surfaces and observe accepted derived-view state instead of reading another runtime's store root.
+
+For local debugging, the inspector avoids raw key spelunking and gives bounded workflow summaries:
 
 ```bash
 node scripts/inspect-work.js --store-root ./store/ecology --all

@@ -23,6 +23,7 @@ Typical operations:
 - no writer admission
 - no process lifecycle control
 - no assumption that your app is the control plane
+- client truth comes from joined mesh surfaces or supported SDK calls, not from another runtime's store root
 
 ## What You Own
 
@@ -43,6 +44,8 @@ Typical operations:
 - do not embed `mesh-operator-cli` behavior into your app runtime
 - do not treat append success as acceptance proof
 - do not infer writable authority from opening or replicating a surface
+- do not read another runtime's filesystem or corestore as a shortcut for observation
+- do not treat diagnostic inspectors or test labs as application integration precedent
 
 ## Minimal Path
 

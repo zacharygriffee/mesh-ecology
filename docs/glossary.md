@@ -287,6 +287,7 @@
 - **Intuition:** Witness.
 - **Definition:** An organism that watches for effects and publishes evidence/claims about what it observed.
 - **Non-claim:** Observers do not define truth; they compete to make evidence legible.
+- **Boundary note:** In this repo, an observer remains a mesh-participating organism pattern, not a direct-store probe or filesystem inspection shortcut.
 
 ## Ratifier (organism pattern)
 - **Intuition:** Selective settlement.

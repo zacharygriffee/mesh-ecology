@@ -53,6 +53,7 @@ Preferred path:
 
 Do not move:
 - client-facing observation or trace flows that already fit the SDK
+- cross-runtime truth acquisition into store-root or filesystem inspection paths
 
 Low-touch follow-up:
 - point operators to `mesh-ecology-packs live:ctl` for workflow bring-up and diagnostics instead of trying to extend client code into a control plane
@@ -76,6 +77,7 @@ Low-touch follow-up:
 Preferred path:
 - consume the supported runtime surfaces only
 - avoid coupling to warmset/retry/dedupe/projector internals
+- avoid coupling to another runtime's local storage layout or copied corestore state
 
 No-change allowed:
 - if current usage stays within supported or legacy-supported paths and does not need the packs control plane yet

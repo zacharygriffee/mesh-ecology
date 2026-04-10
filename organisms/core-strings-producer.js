@@ -7,6 +7,12 @@ import idEncoding from "hypercore-id-encoding";
 /**
  * Teaching example: publish one ratifiable "core://..." result per concern/job.
  *
+ * Posture warning:
+ * - This demo writes to a repo-local demo Corestore under `ECO_STORE_ROOT`.
+ * - That makes it a teaching artifact, not a canonical actor precedent.
+ * - Do not copy this storage pattern into production actors for cross-runtime truth.
+ * - Canonical actors obtain shared truth through discovery/concern participation.
+ *
  * Pattern demonstrated:
  * - Keep workflow progress in `api.work` so restarts are safe.
  * - Treat `api.publish.pub(...)` as a proposal only; acceptance is observed via `ctx.pubs()`.
@@ -53,6 +59,7 @@ async function firstJob(ctx) {
 async function getSharedDemoStore() {
   if (!globalThis[GLOBAL_STORE_PROMISE_KEY]) {
     globalThis[GLOBAL_STORE_PROMISE_KEY] = (async () => {
+      // Demo-only local storage for the teaching flow. This is not canonical actor posture.
       const root = path.resolve(process.env.ECO_STORE_ROOT || "./store/ecology");
       const dir = path.join(root, "demo-core-strings");
       await mkdir(dir, { recursive: true });

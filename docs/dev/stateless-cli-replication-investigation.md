@@ -2,6 +2,7 @@
 
 Date: 2026-02-24
 Scope: technical reconnaissance only (no protocol/runtime changes)
+Status: legacy investigation note. Low-level peer/core inspection discussed here is operator-side evidence gathering only, not canonical actor posture or app integration guidance.
 
 ## 1. Replication Topology Map
 

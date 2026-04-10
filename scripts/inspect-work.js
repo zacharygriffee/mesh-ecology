@@ -12,7 +12,9 @@ const WORKFLOW_STATE_CORE = "dx-workflow-state";
  * Inspector note:
  * - This reads runner-local workflow persistence (`api.work` journal).
  * - It is not protocol truth; concern acceptance remains derived-view state.
- * - Use this to debug actor scheduling/backoff and phase progression.
+ * - It is diagnostic-only, non-canonical, and not actor precedent.
+ * - Do not use this as a pattern for cross-runtime truth acquisition.
+ * - Use this to debug local scheduling/backoff and phase progression.
  */
 
 async function main() {
@@ -104,6 +106,8 @@ function printHelp() {
   console.log(
     [
       "Usage: node scripts/inspect-work.js [options]",
+      "Diagnostic-only helper for one runtime's local work journal.",
+      "Not protocol truth. Not canonical actor precedent.",
       "",
       "Options:",
       "  --store-root <path>  Store root (default: ECO_STORE_ROOT or ./store/ecology)",

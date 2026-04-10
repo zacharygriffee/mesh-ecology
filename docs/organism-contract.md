@@ -1,6 +1,6 @@
 # Organism Runtime & Ratifier Contract (current physics)
 
-Status: normative for runtime implementers; aligned with `docs/v0-locked.md`, `docs/protocol.md`, and `docs/economy-contract.md`. Legacy `src/organism.js` and `src/ratifier.js` are non-authoritative.
+Status: normative for runtime implementers; aligned with `docs/v0-locked.md`, `docs/protocol.md`, `docs/canonical-mesh-participation.md`, and `docs/economy-contract.md`. Legacy `src/organism.js` and `src/ratifier.js` are non-authoritative.
 
 ## 1) Purpose and Scope
 - Define the organism runtime as a reusable shell that discovers concerns, keeps a warm working set, and executes developer-supplied policy via projectors to publish work (PUB).
@@ -21,11 +21,14 @@ Status: normative for runtime implementers; aligned with `docs/v0-locked.md`, `d
 - By default, both organism and ratifier operate as optimistic proposers (non-writers) on concern surfaces.
 - They connect/open/replicate concern surfaces via the concern bootstrap key (`base.key`) obtained from discovery; replication uses the normal concern surface, not a writer admission path.
 - In runtime terms, their default deployment posture is a `readonly` replica/follower until an authority process explicitly grants writer capability.
+- As mesh-facing actors, they MUST obtain cross-runtime truth only through joined discovery/concern surfaces and their derived views.
+- They MUST NOT rely on another runtime's store root, copied local storage, or filesystem inspection as an actor truth path.
 - Proposals are submitted only through optimistic appends: `base.append(..., { optimistic: true })`.
 - In default mode they MUST NOT:
   - call `addWriter(...)`,
   - append authority events (JOB / ADD / STATE or any writer-only operations),
-  - assume publication implies acceptance (acceptance is determined by `concern.apply()` and may reject the proposal).
+  - assume publication implies acceptance (acceptance is determined by `concern.apply()` and may reject the proposal),
+  - treat diagnostic/probe techniques as canonical actor behavior.
 - Acceptance is deterministic and performed by `concern.apply()`; optimistic proposals MAY be rejected without violating correctness.
 
 ## Extension: Authority Writer / Hosted Concern Surfaces (Out of Scope)
@@ -130,6 +133,7 @@ async function projectConcern(ctx) { /* yields zero or more actions */ }
 - Internal keys are 32-byte buffers; z32 is for boundaries/logging only. Comparisons use buffer equality.
 - Discovery scan order is observational only; it conveys no scheduling priority. Any scheduling heuristics are local and must not alter correctness when rejected.
 - Caching/view reuse is scoped to an observational pass; cross-pass reuse without namespacing is forbidden. One Corestore per role process; no sharing across roles.
+- Mesh-facing actor truth must come from discovery/concern participation and derived-view reads, never from another runtime's local filesystem state.
 - Do not base eligibility or acceptance logic on host-local environment or wall-clock thresholds that cannot be replayed. Local heuristics may influence scheduling but must tolerate rejection.
 
 ## Non-goals (Default Contract)

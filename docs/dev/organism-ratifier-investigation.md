@@ -1,5 +1,6 @@
 > Status: Historical investigation notes. Useful for background, but not the source of truth for current runtime behavior.
 > Current runtime truth lives in `docs/v0-locked.md`, `docs/protocol.md`, `docs/runtime-support-policy.md`, and the active runner tests.
+> Any low-level view/core discussion here is explanatory background only, not canonical actor posture or adjacent-repo integration guidance.
 
 # Organism/Ratifier Grounding — discovery.js & concern.js
 _Repo state investigated on February 10, 2026. Updated after discovery replication mini-change._

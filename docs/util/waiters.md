@@ -3,6 +3,7 @@ Waiters & Retry Helpers (phases, not gates)
 Scope
 - Helpers observe phase signals only; they do not guarantee “settled” or “ready”.
 - No protocol semantics are changed; use with bring-up flows only.
+- These helpers are for local debugging and operator evidence collection, not for defining actor truth.
 
 Helpers
 - retry(fn, opts): bounded exponential backoff with jitter; returns structured evidence; opts require attempts, timeoutMs, baseDelayMs, maxDelayMs, jitter, label.
@@ -18,6 +19,7 @@ Bring-up runner (dev helper)
 - Library: src/util/bringup/runner.js (runFourBringup) orchestrates discovery→concern→organism→ratifier using waiters + retry; collects evidence per phase.
 - Phases, not gates: uses flush → transport → advertise → visibility checks; all bounded with retries and timeouts.
 - No “settled” promise: runner reports best-effort success/failure with evidence; operators should still probe/verify.
+  Verify through joined surfaces and derived-view checks rather than cross-runtime store inspection.
 - Tests: npm test (includes bringup-runner unit/integration).
 
 Composition patterns (bring-up)

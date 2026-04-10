@@ -58,3 +58,4 @@ You are here if:
 - default control-plane posture: packs-led, not custom orchestration
 - default replica posture: `readonly`
 - default authority posture: explicit and rare
+- default truth path: join mesh surfaces or use supported SDK/operator surfaces, never store-root inspection across runtimes
