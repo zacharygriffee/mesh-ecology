@@ -94,6 +94,25 @@ Purpose: keep the engine boring, compatibility-first, and explicit about authori
 - `npm test -- test/discovery/discovery-surface.replication.test.js`
 - `npm test -- test/sdk/mesh-sdk.client.test.js`
 
+## Blocker: runner bring-up hangs in adjacent mesh lab usage
+
+- [x] Fix runner/agent-state bring-up so adjacent repos can launch real organism and ratifier runners reliably in disposable local mesh labs.
+  - Observed from `mesh-ecology-testbed` Phase 3 work.
+  - Concern/discovery surfaces open successfully in the same environment.
+  - `createRunner(...)` hangs before returning.
+  - The likely choke point is runner-local agent-state initialization, because `ensureAgentStateSurface(store.namespace("org-state"))` also hangs when called directly.
+  - This blocks adjacent repos from wrapping real runners for local mesh participation tests even though concern/discovery participation itself is working.
+  - Reproduction used from sibling `mesh-ecology-testbed`:
+    - direct repro:
+      - `node -e "import('/home/zevilz/WebstormProjects/mesh-v0-2/src/agent/state.js').then(async (m)=>{const {ensureCorestore}=await import('/home/zevilz/WebstormProjects/mesh-v0-2/src/ensureCorestore.js'); const store=ensureCorestore('./.lab/debug-agent-state'); console.log('before'); const base=await m.ensureAgentStateSurface(store.namespace('org-state')); console.log('ready'); await base.close(); await store.close();}).catch((e)=>{console.error(e); process.exit(1);})"`
+    - runner repro:
+      - `node -e "import('/home/zevilz/WebstormProjects/mesh-v0-2/src/agent/runner.js').then(async (m)=>{const {ensureCorestore}=await import('/home/zevilz/WebstormProjects/mesh-v0-2/src/ensureCorestore.js'); const createFakeSwarm=(await import('fakeswarm')).default; const topics=new Map(); const swarm=createFakeSwarm({topics}); swarm.join(Buffer.alloc(32,9)); const store=ensureCorestore('./.lab/debug-runner-store'); console.log('before'); const r=await m.createRunner({role:'org', corestore:store, swarm, discoveryKeys:[], warmN:1, warmupBudget:{maxTicks:0,maxMs:0,minViewReadable:false}, projector: async()=>{}}); console.log('runner-ready'); await r.close(); await store.close(); await swarm.close();}).catch((e)=>{console.error(e); process.exit(1);})"`
+  - Accept when:
+    - `ensureAgentStateSurface(...)` returns promptly in a normal local Node environment
+    - `createRunner(...)` returns promptly for both `role: "org"` and `role: "ratifier"`
+    - existing runner and ratifier tests still pass
+    - adjacent repos can launch runner-backed organism/ratifier wrappers without patching upstream internals
+
 ## Phase 7: Runtime-owned host primitives for higher-layer wrappers
 
 - [x] Define one stable runtime-owned host spec covering discovery-host and concern-host config shape, required fields, and runtime-owned filesystem layout.
