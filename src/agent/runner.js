@@ -97,9 +97,10 @@ async function createRunner({
   projector,
   log = console
 }) {
-  const agentState = await ensureAgentStateSurface(corestore.namespace(`${role}-state`));
+  const stateStore = corestore.namespace(`${role}-state`);
+  const agentState = await ensureAgentStateSurface(stateStore);
   const workflowStateBee = new Hyperbee(
-    corestore.namespace(`${role}-state`).get({ name: "dx-workflow-state" }),
+    stateStore.get({ name: "dx-workflow-state" }),
     { keyEncoding: "utf-8", valueEncoding: "json", extension: false }
   );
   await workflowStateBee.ready?.();
