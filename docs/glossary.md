@@ -173,6 +173,20 @@
 - **Definition:** In optimistic Autobase mode, indexers call `host.ackWriter(node.from.key)` inside `apply` after deterministic verification; only acked candidates are eligible to be applied to the view.
 - **Important:** `ackWriter` is not admission and does not confer trust; every node from every key is still validated per-node regardless of prior acks.
 
+## Proposal / Submission
+- **Intuition:** “Someone offered material to the concern.”
+- **Definition:** A `PUB` or `RAT` append submitted to the concern surface. Proposal/submission means input was offered; it does not mean canonical state changed.
+
+## Intake / Observation
+- **Intuition:** “The runtime saw proposal material arrive.”
+- **Definition:** Local substrate/apply observation that proposal material reached append or apply processing.
+- **Important:** Intake is local evidence, not shared canonical concern truth.
+
+## Materialization / Acceptance
+- **Intuition:** “The proposal counted.”
+- **Definition:** Deterministic derived-view projection performed by `concern.apply()`.
+- **Important:** Canonical concern truth begins here, not at append success or raw intake observation.
+
 ## Surface Bond (FUTURE / not active in v0-locked)
 - **Intuition:** “What the surface can lose.”
 - **Definition:** A hypothetical finite bond declared at surface genesis and locked per job. **Not enforced in current v0-locked implementation.**

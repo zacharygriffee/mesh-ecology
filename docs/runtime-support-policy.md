@@ -37,6 +37,9 @@ If this document conflicts with higher-precedence runtime docs, the higher-prece
 - Any mesh-facing actor must obtain cross-runtime truth through mesh participation on supported surfaces or supported SDK/operator APIs.
 - Cross-runtime filesystem inspection, store-root handoff, copied local storage, or direct-store shortcuts are not supported actor patterns.
 - Existing low-level mechanics tests may prove physics here without constituting canonical mesh proof by themselves.
+- `PUB` / `RAT` submission is proposal input, not canonical concern state.
+- Intake/observation of proposal material is local runtime evidence, not shared concern truth.
+- Canonical concern truth is derived-view materialization only, whether the proposal came from an optimistic proposer or an admitted writer.
 
 ## Supported surfaces
 

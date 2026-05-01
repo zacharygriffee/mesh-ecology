@@ -34,6 +34,7 @@ Typical operations:
 ## What Mesh Owns
 
 - concern/discovery runtime semantics
+- proposal, intake, and materialization semantics
 - replication and materialization behavior
 - authority/writer posture
 - packs-led control-plane operations
@@ -43,6 +44,7 @@ Typical operations:
 - do not assume mesh means “server/client app”
 - do not embed `mesh-operator-cli` behavior into your app runtime
 - do not treat append success as acceptance proof
+- do not treat proposal intake or local observation as shared canonical concern truth
 - do not infer writable authority from opening or replicating a surface
 - do not read another runtime's filesystem or corestore as a shortcut for observation
 - do not treat diagnostic inspectors or test labs as application integration precedent

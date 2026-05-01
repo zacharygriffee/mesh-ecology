@@ -24,6 +24,7 @@ Status: normative for runtime implementers; aligned with `docs/v0-locked.md`, `d
 - As mesh-facing actors, they MUST obtain cross-runtime truth only through joined discovery/concern surfaces and their derived views.
 - They MUST NOT rely on another runtime's store root, copied local storage, or filesystem inspection as an actor truth path.
 - Proposals are submitted only through optimistic appends: `base.append(..., { optimistic: true })`.
+- Proposal submission is not canonical state. A submitted/observed `PUB` or `RAT` is intake only until `concern.apply()` materializes the derived leaf.
 - In default mode they MUST NOT:
   - call `addWriter(...)`,
   - append authority events (JOB / ADD / STATE or any writer-only operations),
@@ -45,6 +46,7 @@ Status: normative for runtime implementers; aligned with `docs/v0-locked.md`, `d
 - `base.local.key`: the local identity key used when appending; it only becomes authority-bearing if admitted via `addWriter`.
 - `base.view.key`: view replication key; implementation detail for derived state transfer.
 - Optimistic proposers are identified by `from.key` in `apply`; presence of `from.key` DOES NOT imply membership in the writer set.
+- Admitted writers still do not bypass `concern.apply()`. Writer status changes append authority, not canonical acceptance rules.
 
 ## 2) Interfaces and Responsibilities (Organism)
 - Maintain organism-local coordination state using Autobase + Hyperbee (future-friendly for multi-device). This state is advisory only; it never alters concern acceptance.
@@ -78,7 +80,7 @@ Status: normative for runtime implementers; aligned with `docs/v0-locked.md`, `d
   2. Coordinator scans discovery (append-only) → collects concern ads.
   3. Warm top `warmN` concerns → open/replicate/ready → read strict state.
   4. Worker projector observes jobs/attempts → publishes PUB (organism) or RAT (ratifier) via publish interfaces.
-  5. Concern apply validates deterministically (including economics) → if accepted, view updates; otherwise proposals remain unacknowledged.
+  5. Concern apply validates deterministically (including economics) → if accepted, view updates; otherwise proposals may have been submitted or observed on intake but remain non-canonical and unacknowledged.
   6. Warm-set membership is rotated per roam policy; evicted concerns are cleanly closed.
 
 ## 5) Organism Genesis Configuration (local)
@@ -128,6 +130,7 @@ async function projectConcern(ctx) { /* yields zero or more actions */ }
 
 ## 9) Determinism and Safety Requirements
 - Publishing is propositional only; acceptance happens solely inside `concern.apply()` under deterministic rules.
+- Intake is not shared concern truth. Runtime observation that a proposal reached append/apply is local evidence only unless and until the derived view materializes it.
 - `concern.apply()` is pure/deterministic: no base-log appends from apply; no reads of wall-clock time, randomness, environment variables, or networks; replay produces identical views.
 - Strict state is write-once per version `v`; attempts to change values require bumping `v` and writing a new strict config key. Consumers must treat the stored value as canonical for that `v`.
 - Internal keys are 32-byte buffers; z32 is for boundaries/logging only. Comparisons use buffer equality.
