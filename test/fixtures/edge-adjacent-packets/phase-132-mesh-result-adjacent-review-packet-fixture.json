@@ -1,0 +1,1009 @@
+{
+  "artifactKind": "edge_ecosystem_mesh_result_packet_fixture_review",
+  "schemaVersion": "edge_ecosystem_mesh_result_packet_fixture_review.v1",
+  "fixtureId": "edge-ecosystem-mesh-result-packet-fixture-review:2026-05-02T10:00:00.000Z",
+  "createdAt": "2026-05-02T10:00:00.000Z",
+  "fixtureScope": "edge_side_mesh_result_packet_review_only",
+  "targetRepo": "mesh runtime",
+  "targetSurface": "mesh_result_evidence",
+  "seamId": "mesh_result_evidence",
+  "ecosystemSeamId": "mesh_result_evidence",
+  "edgeEcosystemSeamId": "mesh",
+  "packetSetRef": "edge-ecosystem-adjacent-packets:2026-05-02T10:00:00.000Z",
+  "packetRef": "edge-ecosystem-adjacent-packet:001:mesh:2026-05-02T10:00:00.000Z",
+  "packetSet": {
+    "artifactKind": "edge_ecosystem_adjacent_implementation_packet_set",
+    "schemaVersion": "edge_ecosystem_adjacent_implementation_packet_set.v1",
+    "packetSetId": "edge-ecosystem-adjacent-packets:2026-05-02T10:00:00.000Z",
+    "createdAt": "2026-05-02T10:00:00.000Z",
+    "sourceContractSetRef": "edge-ecosystem-handoff-contracts:2026-05-02T10:00:00.000Z",
+    "sourceLedgerRef": "edge-ecosystem-state-ledger:2026-05-02T10:00:00.000Z",
+    "sourceReadinessRollupRef": "edge-ecosystem-readiness:2026-05-02T10:00:00.000Z",
+    "packetRefs": [
+      "edge-ecosystem-adjacent-packet:001:mesh:2026-05-02T10:00:00.000Z"
+    ],
+    "packets": [
+      {
+        "artifactKind": "edge_ecosystem_adjacent_implementation_packet",
+        "schemaVersion": "edge_ecosystem_adjacent_implementation_packet.v1",
+        "packetId": "edge-ecosystem-adjacent-packet:001:mesh:2026-05-02T10:00:00.000Z",
+        "createdAt": "2026-05-02T10:00:00.000Z",
+        "seamId": "mesh",
+        "ecosystemSeamId": "mesh",
+        "targetRepo": "mesh runtime",
+        "targetSurface": "mesh_result_evidence",
+        "packetStatus": "ready_for_handoff_review",
+        "packetCompleteness": "contract_backed",
+        "sourceContractRef": "edge-ecosystem-handoff-contract:001:mesh:2026-05-02T10:00:00.000Z",
+        "sourceContractSetRef": "edge-ecosystem-handoff-contracts:2026-05-02T10:00:00.000Z",
+        "sourceLedgerRef": "edge-ecosystem-state-ledger:2026-05-02T10:00:00.000Z",
+        "sourceReadinessRollupRef": "edge-ecosystem-readiness:2026-05-02T10:00:00.000Z",
+        "sourceWorkPacketRefs": [
+          "edge-ecosystem-work-packet:edge-ecosystem-next-action:001:review_ready_seam:mesh:2026-05-02T10:00:00.000Z"
+        ],
+        "sourceNextActionRefs": [
+          "edge-ecosystem-next-action:001:review_ready_seam:mesh:2026-05-02T10:00:00.000Z"
+        ],
+        "sourceEvidenceRefs": [
+          "mesh-result:phase-132-ready"
+        ],
+        "sourceLedgerEventRefs": [
+          "edge-ecosystem-ledger-event:001:readiness_state_observed:mesh:2026-05-02T10:00:00.000Z",
+          "edge-ecosystem-ledger-event:002:readiness_state_changed:mesh:2026-05-02T10:00:00.000Z",
+          "edge-ecosystem-ledger-event:003:next_action_selected:mesh:2026-05-02T10:00:00.000Z",
+          "edge-ecosystem-ledger-event:004:work_packet_recorded:mesh:2026-05-02T10:00:00.000Z",
+          "edge-ecosystem-ledger-event:005:handoff_contract_drafted:mesh:2026-05-02T10:00:00.000Z"
+        ],
+        "sourceLedgerDeltaRefs": [
+          "edge-ecosystem-ledger-delta:001:readiness_state_changed:mesh:2026-05-02T10:00:00.000Z"
+        ],
+        "contractSnapshot": {
+          "contractId": "edge-ecosystem-handoff-contract:001:mesh:2026-05-02T10:00:00.000Z",
+          "schemaVersion": "edge_ecosystem_handoff_contract.v1",
+          "seamId": "mesh",
+          "ecosystemSeamId": "mesh",
+          "targetRepo": "mesh runtime",
+          "targetSurface": "mesh_result_evidence",
+          "contractStatus": "ready_for_handoff_review",
+          "readinessState": "ready_for_operator_review",
+          "expectedRequestArtifactKind": "mesh_job_preparation_plan",
+          "expectedRequestRequiredFields": [
+            "planId",
+            "expectedResultKind",
+            "expectedConcernRef"
+          ],
+          "expectedReceiptArtifactKind": "edge_mesh_result_evidence_import",
+          "expectedReceiptRequiredFields": [
+            "importId",
+            "importStatus",
+            "resultKind",
+            "evidenceKind"
+          ],
+          "allowedReceiptStatuses": [
+            "imported",
+            "insufficient",
+            "malformed",
+            "unsupported",
+            "mesh_result_ready",
+            "mesh_result_blocked"
+          ],
+          "correlationFields": [
+            "planId",
+            "importId",
+            "expectedResultKind",
+            "expectedConcernRef"
+          ],
+          "edgeAuthorityBoundary": "Edge may prepare mesh job review artifacts and import mesh result evidence without joining the mesh.",
+          "adjacentAuthorityBoundary": "Mesh runtime owns participation, execution, result production, and canonical runtime state.",
+          "acceptanceSemantics": {
+            "edgeDraftOnly": true,
+            "adjacentAccepted": false,
+            "acceptanceRequiresAdjacentEvidence": true,
+            "readinessEffect": "operator_guidance_only",
+            "truthEffect": "none"
+          },
+          "handoffContractIsReviewOnly": true,
+          "adjacentRepoOwnsAuthority": true,
+          "doesNotSatisfyAdjacentAcceptance": true
+        },
+        "readinessSnapshot": {
+          "seamId": "mesh",
+          "ecosystemSeamId": "mesh",
+          "readinessState": "ready_for_operator_review",
+          "blockerReasons": [],
+          "readySignals": [
+            "mesh_result_ready_for_downstream_resume"
+          ],
+          "sourceArtifactRefs": [
+            "mesh-result:phase-132-ready"
+          ],
+          "readinessIsOperatorGuidanceOnly": true,
+          "adjacentTruthClaimed": false,
+          "infersAdjacentTruth": false
+        },
+        "historySummary": {
+          "schemaVersion": "edge_ecosystem_ledger_history_view.v1",
+          "ledgerRef": "edge-ecosystem-state-ledger:2026-05-02T10:00:00.000Z",
+          "eventCount": 5,
+          "deltaCount": 1,
+          "filteredEventCount": 5,
+          "filteredDeltaCount": 1,
+          "latestEventRef": "edge-ecosystem-ledger-event:005:handoff_contract_drafted:mesh:2026-05-02T10:00:00.000Z",
+          "latestDeltaRef": "edge-ecosystem-ledger-delta:001:readiness_state_changed:mesh:2026-05-02T10:00:00.000Z",
+          "historyIsReviewOnly": true,
+          "replaySupported": false,
+          "adjacentTruthClaimed": false
+        },
+        "expectedRequestArtifactKind": "mesh_job_preparation_plan",
+        "expectedRequestRequiredFields": [
+          "planId",
+          "expectedResultKind",
+          "expectedConcernRef"
+        ],
+        "expectedReceiptArtifactKind": "edge_mesh_result_evidence_import",
+        "expectedReceiptRequiredFields": [
+          "importId",
+          "importStatus",
+          "resultKind",
+          "evidenceKind"
+        ],
+        "allowedReceiptStatuses": [
+          "imported",
+          "insufficient",
+          "malformed",
+          "unsupported",
+          "mesh_result_ready",
+          "mesh_result_blocked"
+        ],
+        "correlationFields": [
+          "planId",
+          "importId",
+          "expectedResultKind",
+          "expectedConcernRef"
+        ],
+        "edgeAuthorityBoundary": "Edge may prepare mesh job review artifacts and import mesh result evidence without joining the mesh.",
+        "adjacentAuthorityBoundary": "Mesh runtime owns participation, execution, result production, and canonical runtime state.",
+        "acceptanceSemantics": {
+          "edgeDraftOnly": true,
+          "adjacentAccepted": false,
+          "acceptanceRequiresAdjacentEvidence": true,
+          "readinessEffect": "operator_guidance_only",
+          "truthEffect": "none"
+        },
+        "packetIsEdgeDraftOnly": true,
+        "packetIsReviewOnly": true,
+        "adjacentAccepted": false,
+        "adjacentAcceptanceClaimed": false,
+        "adjacentRepoOwnsAuthority": true,
+        "evidenceRefsAreEvidenceOnly": true,
+        "ledgerHistoryRefsAreReviewOnly": true,
+        "workPacketRefsAreEdgeLocalContextOnly": true,
+        "nextActionRefsAreExplanatoryOnly": true,
+        "unsupportedActions": [
+          "discover_repos",
+          "discover_tools",
+          "discover_evidence",
+          "call_adjacent_repo",
+          "call_tool",
+          "execute",
+          "schedule_work",
+          "activate_platform",
+          "publish_to_mesh",
+          "admit_writer",
+          "grant_authority",
+          "infer_reachability",
+          "infer_mesh_participation",
+          "infer_adjacent_truth"
+        ],
+        "localOnly": true,
+        "explicitArtifactOnly": true,
+        "derivedOnly": true,
+        "discoversRepos": false,
+        "discoversTools": false,
+        "discoversEvidence": false,
+        "callsAdjacentRepo": false,
+        "callsTool": false,
+        "executesAction": false,
+        "schedulesWork": false,
+        "activatesPlatform": false,
+        "publishesToMesh": false,
+        "admitsWriter": false,
+        "grantsAuthority": false,
+        "infersReachability": false,
+        "infersMeshParticipation": false,
+        "infersAdjacentTruth": false,
+        "adjacentRepoAuthority": false,
+        "hiddenStateMutation": false
+      }
+    ],
+    "seamIds": [
+      "mesh"
+    ],
+    "targetRepos": [
+      "mesh runtime"
+    ],
+    "packetCount": 1,
+    "draftOnly": true,
+    "reviewOnly": true,
+    "packetSetIsEdgeDraftOnly": true,
+    "adjacentAccepted": false,
+    "adjacentAcceptanceClaimed": false,
+    "adjacentReposOwnAuthority": true,
+    "storesHiddenState": false,
+    "writesToDisk": false,
+    "unsupportedActions": [
+      "discover_repos",
+      "discover_tools",
+      "discover_evidence",
+      "call_adjacent_repo",
+      "call_tool",
+      "execute",
+      "schedule_work",
+      "activate_platform",
+      "publish_to_mesh",
+      "admit_writer",
+      "grant_authority",
+      "infer_reachability",
+      "infer_mesh_participation",
+      "infer_adjacent_truth"
+    ],
+    "localOnly": true,
+    "explicitArtifactOnly": true,
+    "derivedOnly": true,
+    "discoversRepos": false,
+    "discoversTools": false,
+    "discoversEvidence": false,
+    "callsAdjacentRepo": false,
+    "callsTool": false,
+    "executesAction": false,
+    "schedulesWork": false,
+    "activatesPlatform": false,
+    "publishesToMesh": false,
+    "admitsWriter": false,
+    "grantsAuthority": false,
+    "infersReachability": false,
+    "infersMeshParticipation": false,
+    "infersAdjacentTruth": false,
+    "adjacentRepoAuthority": false,
+    "hiddenStateMutation": false
+  },
+  "packet": {
+    "artifactKind": "edge_ecosystem_adjacent_implementation_packet",
+    "schemaVersion": "edge_ecosystem_adjacent_implementation_packet.v1",
+    "packetId": "edge-ecosystem-adjacent-packet:001:mesh:2026-05-02T10:00:00.000Z",
+    "createdAt": "2026-05-02T10:00:00.000Z",
+    "seamId": "mesh",
+    "ecosystemSeamId": "mesh",
+    "targetRepo": "mesh runtime",
+    "targetSurface": "mesh_result_evidence",
+    "packetStatus": "ready_for_handoff_review",
+    "packetCompleteness": "contract_backed",
+    "sourceContractRef": "edge-ecosystem-handoff-contract:001:mesh:2026-05-02T10:00:00.000Z",
+    "sourceContractSetRef": "edge-ecosystem-handoff-contracts:2026-05-02T10:00:00.000Z",
+    "sourceLedgerRef": "edge-ecosystem-state-ledger:2026-05-02T10:00:00.000Z",
+    "sourceReadinessRollupRef": "edge-ecosystem-readiness:2026-05-02T10:00:00.000Z",
+    "sourceWorkPacketRefs": [
+      "edge-ecosystem-work-packet:edge-ecosystem-next-action:001:review_ready_seam:mesh:2026-05-02T10:00:00.000Z"
+    ],
+    "sourceNextActionRefs": [
+      "edge-ecosystem-next-action:001:review_ready_seam:mesh:2026-05-02T10:00:00.000Z"
+    ],
+    "sourceEvidenceRefs": [
+      "mesh-result:phase-132-ready"
+    ],
+    "sourceLedgerEventRefs": [
+      "edge-ecosystem-ledger-event:001:readiness_state_observed:mesh:2026-05-02T10:00:00.000Z",
+      "edge-ecosystem-ledger-event:002:readiness_state_changed:mesh:2026-05-02T10:00:00.000Z",
+      "edge-ecosystem-ledger-event:003:next_action_selected:mesh:2026-05-02T10:00:00.000Z",
+      "edge-ecosystem-ledger-event:004:work_packet_recorded:mesh:2026-05-02T10:00:00.000Z",
+      "edge-ecosystem-ledger-event:005:handoff_contract_drafted:mesh:2026-05-02T10:00:00.000Z"
+    ],
+    "sourceLedgerDeltaRefs": [
+      "edge-ecosystem-ledger-delta:001:readiness_state_changed:mesh:2026-05-02T10:00:00.000Z"
+    ],
+    "contractSnapshot": {
+      "contractId": "edge-ecosystem-handoff-contract:001:mesh:2026-05-02T10:00:00.000Z",
+      "schemaVersion": "edge_ecosystem_handoff_contract.v1",
+      "seamId": "mesh",
+      "ecosystemSeamId": "mesh",
+      "targetRepo": "mesh runtime",
+      "targetSurface": "mesh_result_evidence",
+      "contractStatus": "ready_for_handoff_review",
+      "readinessState": "ready_for_operator_review",
+      "expectedRequestArtifactKind": "mesh_job_preparation_plan",
+      "expectedRequestRequiredFields": [
+        "planId",
+        "expectedResultKind",
+        "expectedConcernRef"
+      ],
+      "expectedReceiptArtifactKind": "edge_mesh_result_evidence_import",
+      "expectedReceiptRequiredFields": [
+        "importId",
+        "importStatus",
+        "resultKind",
+        "evidenceKind"
+      ],
+      "allowedReceiptStatuses": [
+        "imported",
+        "insufficient",
+        "malformed",
+        "unsupported",
+        "mesh_result_ready",
+        "mesh_result_blocked"
+      ],
+      "correlationFields": [
+        "planId",
+        "importId",
+        "expectedResultKind",
+        "expectedConcernRef"
+      ],
+      "edgeAuthorityBoundary": "Edge may prepare mesh job review artifacts and import mesh result evidence without joining the mesh.",
+      "adjacentAuthorityBoundary": "Mesh runtime owns participation, execution, result production, and canonical runtime state.",
+      "acceptanceSemantics": {
+        "edgeDraftOnly": true,
+        "adjacentAccepted": false,
+        "acceptanceRequiresAdjacentEvidence": true,
+        "readinessEffect": "operator_guidance_only",
+        "truthEffect": "none"
+      },
+      "handoffContractIsReviewOnly": true,
+      "adjacentRepoOwnsAuthority": true,
+      "doesNotSatisfyAdjacentAcceptance": true
+    },
+    "readinessSnapshot": {
+      "seamId": "mesh",
+      "ecosystemSeamId": "mesh",
+      "readinessState": "ready_for_operator_review",
+      "blockerReasons": [],
+      "readySignals": [
+        "mesh_result_ready_for_downstream_resume"
+      ],
+      "sourceArtifactRefs": [
+        "mesh-result:phase-132-ready"
+      ],
+      "readinessIsOperatorGuidanceOnly": true,
+      "adjacentTruthClaimed": false,
+      "infersAdjacentTruth": false
+    },
+    "historySummary": {
+      "schemaVersion": "edge_ecosystem_ledger_history_view.v1",
+      "ledgerRef": "edge-ecosystem-state-ledger:2026-05-02T10:00:00.000Z",
+      "eventCount": 5,
+      "deltaCount": 1,
+      "filteredEventCount": 5,
+      "filteredDeltaCount": 1,
+      "latestEventRef": "edge-ecosystem-ledger-event:005:handoff_contract_drafted:mesh:2026-05-02T10:00:00.000Z",
+      "latestDeltaRef": "edge-ecosystem-ledger-delta:001:readiness_state_changed:mesh:2026-05-02T10:00:00.000Z",
+      "historyIsReviewOnly": true,
+      "replaySupported": false,
+      "adjacentTruthClaimed": false
+    },
+    "expectedRequestArtifactKind": "mesh_job_preparation_plan",
+    "expectedRequestRequiredFields": [
+      "planId",
+      "expectedResultKind",
+      "expectedConcernRef"
+    ],
+    "expectedReceiptArtifactKind": "edge_mesh_result_evidence_import",
+    "expectedReceiptRequiredFields": [
+      "importId",
+      "importStatus",
+      "resultKind",
+      "evidenceKind"
+    ],
+    "allowedReceiptStatuses": [
+      "imported",
+      "insufficient",
+      "malformed",
+      "unsupported",
+      "mesh_result_ready",
+      "mesh_result_blocked"
+    ],
+    "correlationFields": [
+      "planId",
+      "importId",
+      "expectedResultKind",
+      "expectedConcernRef"
+    ],
+    "edgeAuthorityBoundary": "Edge may prepare mesh job review artifacts and import mesh result evidence without joining the mesh.",
+    "adjacentAuthorityBoundary": "Mesh runtime owns participation, execution, result production, and canonical runtime state.",
+    "acceptanceSemantics": {
+      "edgeDraftOnly": true,
+      "adjacentAccepted": false,
+      "acceptanceRequiresAdjacentEvidence": true,
+      "readinessEffect": "operator_guidance_only",
+      "truthEffect": "none"
+    },
+    "packetIsEdgeDraftOnly": true,
+    "packetIsReviewOnly": true,
+    "adjacentAccepted": false,
+    "adjacentAcceptanceClaimed": false,
+    "adjacentRepoOwnsAuthority": true,
+    "evidenceRefsAreEvidenceOnly": true,
+    "ledgerHistoryRefsAreReviewOnly": true,
+    "workPacketRefsAreEdgeLocalContextOnly": true,
+    "nextActionRefsAreExplanatoryOnly": true,
+    "unsupportedActions": [
+      "discover_repos",
+      "discover_tools",
+      "discover_evidence",
+      "call_adjacent_repo",
+      "call_tool",
+      "execute",
+      "schedule_work",
+      "activate_platform",
+      "publish_to_mesh",
+      "admit_writer",
+      "grant_authority",
+      "infer_reachability",
+      "infer_mesh_participation",
+      "infer_adjacent_truth"
+    ],
+    "localOnly": true,
+    "explicitArtifactOnly": true,
+    "derivedOnly": true,
+    "discoversRepos": false,
+    "discoversTools": false,
+    "discoversEvidence": false,
+    "callsAdjacentRepo": false,
+    "callsTool": false,
+    "executesAction": false,
+    "schedulesWork": false,
+    "activatesPlatform": false,
+    "publishesToMesh": false,
+    "admitsWriter": false,
+    "grantsAuthority": false,
+    "infersReachability": false,
+    "infersMeshParticipation": false,
+    "infersAdjacentTruth": false,
+    "adjacentRepoAuthority": false,
+    "hiddenStateMutation": false
+  },
+  "reviewChecklist": [
+    {
+      "checklistId": "target_seam_is_mesh_result_evidence",
+      "label": "Target seam is mesh_result_evidence.",
+      "required": true
+    },
+    {
+      "checklistId": "target_surface_is_mesh_result_evidence",
+      "label": "Target surface is mesh_result_evidence.",
+      "required": true
+    },
+    {
+      "checklistId": "packet_is_edge_draft_only",
+      "label": "Packet is Edge-draft only.",
+      "required": true
+    },
+    {
+      "checklistId": "packet_is_review_only",
+      "label": "Packet is review-only.",
+      "required": true
+    },
+    {
+      "checklistId": "packet_is_adjacent_unaccepted",
+      "label": "Packet is adjacent-unaccepted.",
+      "required": true
+    },
+    {
+      "checklistId": "required_packet_fields_present",
+      "label": "Required packet fields are present.",
+      "required": true
+    },
+    {
+      "checklistId": "contract_metadata_complete",
+      "label": "Contract metadata is complete and mirrors Edge-draft mesh result expectations.",
+      "required": true
+    },
+    {
+      "checklistId": "request_and_receipt_fields_preserved",
+      "label": "Request and receipt required fields are preserved.",
+      "required": true
+    },
+    {
+      "checklistId": "source_refs_available",
+      "label": "Source refs are present for contract, contract set, ledger, readiness, evidence, work packet, next action, ledger events, and ledger deltas where available.",
+      "required": true
+    },
+    {
+      "checklistId": "mesh_result_correlation_refs_available",
+      "label": "Mesh-result correlation refs are present where available.",
+      "required": true
+    },
+    {
+      "checklistId": "wording_does_not_imply_mesh_participation",
+      "label": "Wording does not imply mesh participation.",
+      "required": true
+    },
+    {
+      "checklistId": "wording_does_not_imply_job_execution",
+      "label": "Wording does not imply job execution.",
+      "required": true
+    },
+    {
+      "checklistId": "wording_does_not_imply_result_truth",
+      "label": "Wording does not imply result truth.",
+      "required": true
+    },
+    {
+      "checklistId": "wording_does_not_imply_writer_admission",
+      "label": "Wording does not imply writer admission.",
+      "required": true
+    },
+    {
+      "checklistId": "wording_does_not_imply_topology_discovery",
+      "label": "Wording does not imply topology discovery.",
+      "required": true
+    },
+    {
+      "checklistId": "wording_does_not_imply_canonical_result_acceptance",
+      "label": "Wording does not imply canonical result acceptance.",
+      "required": true
+    },
+    {
+      "checklistId": "wording_does_not_imply_runtime_success",
+      "label": "Wording does not imply runtime success.",
+      "required": true
+    },
+    {
+      "checklistId": "wording_does_not_imply_mesh_publication_write_commit_broadcast_or_replication",
+      "label": "Wording does not imply mesh publication, write, commit, broadcast, or replication.",
+      "required": true
+    },
+    {
+      "checklistId": "wording_does_not_imply_actor_or_organism_execution",
+      "label": "Wording does not imply actor or organism execution.",
+      "required": true
+    },
+    {
+      "checklistId": "wording_does_not_imply_scheduler_or_runner_behavior",
+      "label": "Wording does not imply scheduler or runner behavior.",
+      "required": true
+    },
+    {
+      "checklistId": "wording_does_not_imply_production_or_mesh_truth",
+      "label": "Wording does not imply production proof or mesh truth.",
+      "required": true
+    },
+    {
+      "checklistId": "malformed_packets_remain_review_only",
+      "label": "Malformed or incomplete packets should be rejected or marked review-only by the mesh-result owner.",
+      "required": true
+    },
+    {
+      "checklistId": "no_edge_mutation_callback_live_fetch_runner_scheduler_live_discovery_mesh_join_mesh_publish_job_execution_writer_admission_topology_discovery_actor_organism_execution_or_mesh_write",
+      "label": "No Edge mutation, callback, live fetch, runner, scheduler, live discovery, mesh join, mesh publish, job execution, writer admission, topology discovery, actor or organism execution, or mesh write is required.",
+      "required": true
+    }
+  ],
+  "meshResultWordingGuardrails": {
+    "guardrailSetId": "mesh_result_fixture_review_wording_guardrails",
+    "useWording": [
+      "Mesh result adjacent review packet",
+      "mesh result evidence review",
+      "expected mesh-result-owned review evidence",
+      "result correlation ref",
+      "job correlation ref",
+      "writer correlation ref",
+      "topology correlation ref",
+      "actor correlation ref",
+      "organism correlation ref",
+      "operator review readiness",
+      "evidence-only mesh result context",
+      "mesh result owner retains result, writer, topology, runtime, and publication authority"
+    ],
+    "avoidWording": [
+      "edge joined mesh",
+      "edge is a mesh participant",
+      "mesh participant accepted",
+      "writer admitted",
+      "writer authorized",
+      "writer trusted",
+      "topology discovered",
+      "topology is canonical",
+      "canonical result",
+      "result is true",
+      "result verified",
+      "job executed",
+      "job succeeded",
+      "job completed",
+      "actor executed",
+      "organism executed",
+      "runtime succeeded",
+      "runtime healthy",
+      "published to mesh",
+      "wrote to mesh",
+      "committed to mesh",
+      "broadcast to mesh",
+      "replicated through mesh",
+      "scheduled job",
+      "dispatched job",
+      "ran job",
+      "replayed job",
+      "mesh receipt proves",
+      "production proof",
+      "mesh proof"
+    ],
+    "readinessMeansOperatorReviewOnly": true,
+    "packetPresenceDoesNotJoinMesh": true,
+    "packetPresenceDoesNotClaimMeshParticipation": true,
+    "packetPresenceDoesNotExecuteJob": true,
+    "packetPresenceDoesNotClaimResultTruth": true,
+    "packetPresenceDoesNotAdmitWriter": true,
+    "packetPresenceDoesNotDiscoverTopology": true,
+    "packetPresenceDoesNotAcceptCanonicalResult": true,
+    "packetPresenceDoesNotClaimRuntimeSuccess": true,
+    "packetPresenceDoesNotPublishWriteCommitBroadcastOrReplicateToMesh": true,
+    "packetPresenceDoesNotExecuteActorOrOrganism": true,
+    "packetPresenceDoesNotScheduleOrRunWork": true,
+    "fixtureDoesNotRequireLiveMeshAccess": true,
+    "fixtureDoesNotRequireMeshSubscription": true,
+    "fixtureDoesNotRequireRuntimeValidation": true,
+    "reviewOnly": true,
+    "callsAdjacentRepo": false,
+    "executesAction": false,
+    "schedulesWork": false,
+    "publishesToMesh": false,
+    "infersMeshParticipation": false
+  },
+  "expectedMeshResultEvidenceResponseShape": {
+    "artifactKind": "mesh_result_owned_adjacent_review_evidence",
+    "schemaVersion": "mesh-result-owned-schema-or-schemaVersion",
+    "expectationIsEdgeSideOnly": true,
+    "notAcceptedAdjacentSchema": true,
+    "meshResultOwnerOwnsArtifactKind": true,
+    "meshResultOwnerOwnsSchemaVersion": true,
+    "artifactId": "mesh-result-review-evidence:phase-132",
+    "evidenceId": "mesh-result-review-evidence:phase-132",
+    "emittedAt": "2026-05-02T10:00:00.000Z",
+    "createdAt": "2026-05-02T10:00:00.000Z",
+    "sourceFixture": "docs/reviews/phase-132-mesh-result-adjacent-review-packet-fixture.json",
+    "edgePacketRefs": {
+      "packetRef": "edge-ecosystem-adjacent-packet:001:mesh:2026-05-02T10:00:00.000Z",
+      "packetSetRef": "edge-ecosystem-handoff-contracts:2026-05-02T10:00:00.000Z",
+      "sourceContractRef": "edge-ecosystem-handoff-contract:001:mesh:2026-05-02T10:00:00.000Z",
+      "sourceContractSetRef": "edge-ecosystem-handoff-contracts:2026-05-02T10:00:00.000Z",
+      "sourceLedgerRef": "edge-ecosystem-state-ledger:2026-05-02T10:00:00.000Z",
+      "sourceReadinessRollupRef": "edge-ecosystem-readiness:2026-05-02T10:00:00.000Z"
+    },
+    "edgeImportClassification": {
+      "seamId": "mesh_result_evidence",
+      "evidenceKind": "mesh_result_edge_packet_review_evidence",
+      "edgeExpectedArtifactKind": "mesh_result_edge_packet_review_evidence",
+      "classificationOnly": true,
+      "edgeOwnsSchema": false
+    },
+    "packetRef": "edge-ecosystem-adjacent-packet:001:mesh:2026-05-02T10:00:00.000Z",
+    "sourceContractRef": "edge-ecosystem-handoff-contract:001:mesh:2026-05-02T10:00:00.000Z",
+    "sourceContractSetRef": "edge-ecosystem-handoff-contracts:2026-05-02T10:00:00.000Z",
+    "sourceLedgerRef": "edge-ecosystem-state-ledger:2026-05-02T10:00:00.000Z",
+    "sourceReadinessRollupRef": "edge-ecosystem-readiness:2026-05-02T10:00:00.000Z",
+    "sourceEvidenceRefs": [
+      "mesh-result:phase-132-ready"
+    ],
+    "sourceWorkPacketRefs": [
+      "edge-ecosystem-work-packet:edge-ecosystem-next-action:001:review_ready_seam:mesh:2026-05-02T10:00:00.000Z"
+    ],
+    "sourceNextActionRefs": [
+      "edge-ecosystem-next-action:001:review_ready_seam:mesh:2026-05-02T10:00:00.000Z"
+    ],
+    "sourceLedgerEventRefs": [
+      "edge-ecosystem-ledger-event:001:readiness_state_observed:mesh:2026-05-02T10:00:00.000Z",
+      "edge-ecosystem-ledger-event:002:readiness_state_changed:mesh:2026-05-02T10:00:00.000Z",
+      "edge-ecosystem-ledger-event:003:next_action_selected:mesh:2026-05-02T10:00:00.000Z",
+      "edge-ecosystem-ledger-event:004:work_packet_recorded:mesh:2026-05-02T10:00:00.000Z",
+      "edge-ecosystem-ledger-event:005:handoff_contract_drafted:mesh:2026-05-02T10:00:00.000Z"
+    ],
+    "sourceLedgerDeltaRefs": [
+      "edge-ecosystem-ledger-delta:001:readiness_state_changed:mesh:2026-05-02T10:00:00.000Z"
+    ],
+    "reviewStatus": "review_only_pass",
+    "allowedReviewStatuses": [
+      "review_only_pass",
+      "review_only_rejected",
+      "review_only_malformed_fixture",
+      "review_only_incomplete_fixture",
+      "review_only_unsupported_fixture",
+      "review_only_scope_violation",
+      "review_only_mesh_participation_wording_blocked",
+      "review_only_result_truth_wording_blocked",
+      "review_only_writer_admission_wording_blocked",
+      "review_only_topology_discovery_wording_blocked",
+      "review_only_execution_wording_blocked"
+    ],
+    "evidenceLabel": {
+      "evidenceKind": "mesh_result_fixture_review",
+      "outcome": "review_only_pass",
+      "scenarioId": "phase-132-mesh-result-adjacent-packet"
+    },
+    "receiptLabel": {
+      "labelKind": "mesh_result_evidence_review",
+      "outcome": "review_only_pass",
+      "requestArtifactKindReviewed": "mesh_job_preparation_plan",
+      "receiptArtifactKindReviewed": "edge_mesh_result_evidence_import"
+    },
+    "reasonCodes": [
+      "mesh_result_packet_fixture_review_pass",
+      "mesh_result_evidence_review_only",
+      "no_mesh_authority_claimed"
+    ],
+    "meshResultFindings": [],
+    "warnings": [
+      "static-fixture-only",
+      "review-evidence-only",
+      "edge-import-classification-only"
+    ],
+    "rejections": [],
+    "meshResultRef": "mesh-result:phase-132-review",
+    "meshResultEvidenceRef": "mesh-result-evidence:phase-132-review",
+    "meshResultReceiptRef": "mesh-result-receipt:phase-132-review",
+    "meshJobRef": "mesh-job:phase-132-review",
+    "meshJobRequestRef": "mesh-job-request:phase-132-review",
+    "meshJobResultRef": "mesh-job-result:phase-132-review",
+    "meshExecutionRef": null,
+    "meshRuntimeRef": "mesh-runtime-review:phase-132",
+    "meshWriterRef": "mesh-writer-review:phase-132",
+    "writerAdmissionRef": null,
+    "writerReceiptRef": "mesh-writer-receipt-review:phase-132",
+    "meshTopologyRef": "mesh-topology-review:phase-132",
+    "topologySnapshotRef": null,
+    "meshParticipantRef": null,
+    "meshPublicationRef": null,
+    "meshCommitRef": null,
+    "meshObservationRef": "mesh-observation-review:phase-132",
+    "meshRouteRef": "mesh-route-review:phase-132",
+    "meshPeerRef": "mesh-peer-review:phase-132",
+    "actorRef": "mesh-actor-review:phase-132",
+    "organismRef": "mesh-organism-review:phase-132",
+    "schedulerRef": null,
+    "runnerRef": null,
+    "resultPayloadRef": "mesh-result-payload-review:phase-132",
+    "resultDigestRef": "mesh-result-digest-review:phase-132",
+    "resultValidationRef": "mesh-result-validation-review:phase-132",
+    "correlationRefs": {
+      "packetRef": "edge-ecosystem-adjacent-packet:001:mesh:2026-05-02T10:00:00.000Z",
+      "sourceContractRef": "edge-ecosystem-handoff-contract:001:mesh:2026-05-02T10:00:00.000Z",
+      "sourceContractSetRef": "edge-ecosystem-handoff-contracts:2026-05-02T10:00:00.000Z",
+      "sourceLedgerRef": "edge-ecosystem-state-ledger:2026-05-02T10:00:00.000Z",
+      "sourceReadinessRollupRef": "edge-ecosystem-readiness:2026-05-02T10:00:00.000Z",
+      "sourceEvidenceRefs": [
+        "mesh-result:phase-132-ready"
+      ],
+      "sourceWorkPacketRefs": [
+        "edge-ecosystem-work-packet:edge-ecosystem-next-action:001:review_ready_seam:mesh:2026-05-02T10:00:00.000Z"
+      ],
+      "sourceNextActionRefs": [
+        "edge-ecosystem-next-action:001:review_ready_seam:mesh:2026-05-02T10:00:00.000Z"
+      ],
+      "sourceLedgerEventRefs": [
+        "edge-ecosystem-ledger-event:001:readiness_state_observed:mesh:2026-05-02T10:00:00.000Z",
+        "edge-ecosystem-ledger-event:002:readiness_state_changed:mesh:2026-05-02T10:00:00.000Z",
+        "edge-ecosystem-ledger-event:003:next_action_selected:mesh:2026-05-02T10:00:00.000Z",
+        "edge-ecosystem-ledger-event:004:work_packet_recorded:mesh:2026-05-02T10:00:00.000Z",
+        "edge-ecosystem-ledger-event:005:handoff_contract_drafted:mesh:2026-05-02T10:00:00.000Z"
+      ],
+      "sourceLedgerDeltaRefs": [
+        "edge-ecosystem-ledger-delta:001:readiness_state_changed:mesh:2026-05-02T10:00:00.000Z"
+      ],
+      "evidenceId": "mesh-result-review-evidence:phase-132",
+      "reviewStatus": "review_only_pass",
+      "reasonCodes": [
+        "mesh_result_packet_fixture_review_pass"
+      ],
+      "evidenceLabel": "mesh_result_fixture_review",
+      "requestId": "mesh-result-request:phase-132-review",
+      "receiptId": "mesh-result-receipt:phase-132-review",
+      "meshResultRef": "mesh-result:phase-132-review",
+      "meshResultEvidenceRef": "mesh-result-evidence:phase-132-review",
+      "meshResultReceiptRef": "mesh-result-receipt:phase-132-review",
+      "meshJobRef": "mesh-job:phase-132-review",
+      "meshJobRequestRef": "mesh-job-request:phase-132-review",
+      "meshJobResultRef": "mesh-job-result:phase-132-review",
+      "meshExecutionRef": null,
+      "meshRuntimeRef": "mesh-runtime-review:phase-132",
+      "meshWriterRef": "mesh-writer-review:phase-132",
+      "writerAdmissionRef": null,
+      "writerReceiptRef": "mesh-writer-receipt-review:phase-132",
+      "meshTopologyRef": "mesh-topology-review:phase-132",
+      "topologySnapshotRef": null,
+      "meshParticipantRef": null,
+      "meshPublicationRef": null,
+      "meshCommitRef": null,
+      "meshObservationRef": "mesh-observation-review:phase-132",
+      "meshRouteRef": "mesh-route-review:phase-132",
+      "meshPeerRef": "mesh-peer-review:phase-132",
+      "actorRef": "mesh-actor-review:phase-132",
+      "organismRef": "mesh-organism-review:phase-132",
+      "schedulerRef": null,
+      "runnerRef": null,
+      "resultPayloadRef": "mesh-result-payload-review:phase-132",
+      "resultDigestRef": "mesh-result-digest-review:phase-132",
+      "resultValidationRef": "mesh-result-validation-review:phase-132"
+    },
+    "requiredFields": [
+      "artifactKind",
+      "schemaVersion",
+      "artifactId",
+      "emittedAt",
+      "sourceFixture",
+      "edgePacketRefs",
+      "edgeImportClassification",
+      "reviewStatus",
+      "evidenceLabel",
+      "correlationRefs",
+      "reasonCodes",
+      "meshResultFindings",
+      "warnings",
+      "rejections"
+    ],
+    "staticInputOnly": true,
+    "reviewOnly": true,
+    "evidenceOnly": true,
+    "edgeRuntimeFetched": false,
+    "edgeCalled": false,
+    "edgeMutated": false,
+    "edgeJoinedMesh": false,
+    "edgeMeshParticipantClaimed": false,
+    "edgePacketAcceptedAsSchema": false,
+    "edgePacketAcceptedAsCommand": false,
+    "meshParticipationClaimed": false,
+    "jobExecutionClaimed": false,
+    "resultTruthClaimed": false,
+    "writerAdmissionClaimed": false,
+    "writerAuthorizationClaimed": false,
+    "topologyDiscoveryClaimed": false,
+    "canonicalTopologyClaimed": false,
+    "canonicalResultAccepted": false,
+    "runtimeSuccessClaimed": false,
+    "meshPublicationClaimed": false,
+    "meshWriteClaimed": false,
+    "actorExecutionClaimed": false,
+    "organismExecutionClaimed": false,
+    "schedulerClaimed": false,
+    "runnerClaimed": false,
+    "productionProofClaimed": false,
+    "meshTruthClaimed": false,
+    "grantsAdjacentAcceptance": false,
+    "edgeAuthorityGranted": false,
+    "publishesToMesh": false,
+    "liveMeshAccessRequired": false,
+    "meshSubscriptionRequired": false,
+    "meshPublicationRequired": false,
+    "writerAdmissionRequired": false,
+    "topologyDiscoveryRequired": false,
+    "jobExecutionRequired": false,
+    "actorExecutionRequired": false,
+    "organismExecutionRequired": false,
+    "schedulerRequired": false,
+    "runnerRequired": false,
+    "runtimeValidationRequired": false,
+    "productionProofRequired": false
+  },
+  "stopGoDecision": {
+    "artifactKind": "edge_ecosystem_mesh_result_packet_stop_go_decision",
+    "decision": "go_for_mesh_result_repo_review",
+    "readyToHandToMeshResultOwner": true,
+    "blockers": [],
+    "acceptanceCriteria": [
+      "The mesh-result owner reads the packet as a static fixture only.",
+      "The mesh-result owner validates packetRef, sourceContractRef, result refs, job refs, writer refs, topology refs, actor refs, organism refs, and correlation refs where present.",
+      "The mesh-result owner owns any response artifact kind, schemaVersion, statuses, result semantics, writer admission semantics, topology semantics, runtime semantics, publication semantics, and acceptance.",
+      "The mesh-result owner response claims no mesh participation, job execution, result truth, writer admission, topology discovery, canonical result acceptance, runtime success, mesh publication, actor execution, organism execution, scheduler, runner, production proof, mesh truth, or Edge authority.",
+      "The mesh-result owner response does not accept the Edge packet as a command or schema.",
+      "The mesh-result owner response and fixture review do not require live mesh access, mesh subscription, mesh publication, writer admission, topology discovery, job execution, actor or organism execution, scheduler behavior, runner behavior, runtime validation, or production proof.",
+      "Edge can later plan evidence-only import of the response without calling, mutating, joining, publishing, executing, scheduling, running, discovering, or admitting anything."
+    ],
+    "reviewOnly": true,
+    "fixtureOnly": true,
+    "edgeDraftOnly": true,
+    "meshResultAccepted": false,
+    "meshResultSchemaAccepted": false,
+    "adjacentAccepted": false,
+    "adjacentAcceptanceClaimed": false,
+    "edgeJoinedMesh": false,
+    "edgeMeshParticipantClaimed": false,
+    "meshParticipationClaimed": false,
+    "jobExecutionClaimed": false,
+    "resultTruthClaimed": false,
+    "writerAdmissionClaimed": false,
+    "writerAuthorizationClaimed": false,
+    "topologyDiscoveryClaimed": false,
+    "canonicalTopologyClaimed": false,
+    "canonicalResultAccepted": false,
+    "runtimeSuccessClaimed": false,
+    "meshPublicationClaimed": false,
+    "meshWriteClaimed": false,
+    "actorExecutionClaimed": false,
+    "organismExecutionClaimed": false,
+    "schedulerClaimed": false,
+    "runnerClaimed": false,
+    "productionProofClaimed": false,
+    "meshTruthClaimed": false,
+    "callsAdjacentRepo": false,
+    "executesAction": false,
+    "schedulesWork": false,
+    "publishesToMesh": false,
+    "infersAdjacentTruth": false,
+    "infersMeshParticipation": false
+  },
+  "packetIsEdgeDraftOnly": true,
+  "packetIsReviewOnly": true,
+  "fixtureOnly": true,
+  "edgeLocalOnly": true,
+  "adjacentAccepted": false,
+  "adjacentAcceptanceClaimed": false,
+  "adjacentRepoOwnsAuthority": true,
+  "meshResultAccepted": false,
+  "meshResultSchemaAccepted": false,
+  "edgeJoinedMesh": false,
+  "edgeMeshParticipantClaimed": false,
+  "meshParticipationClaimed": false,
+  "jobExecutionClaimed": false,
+  "resultTruthClaimed": false,
+  "writerAdmissionClaimed": false,
+  "writerAuthorizationClaimed": false,
+  "topologyDiscoveryClaimed": false,
+  "canonicalTopologyClaimed": false,
+  "canonicalResultAccepted": false,
+  "runtimeSuccessClaimed": false,
+  "meshPublicationClaimed": false,
+  "meshWriteClaimed": false,
+  "actorExecutionClaimed": false,
+  "organismExecutionClaimed": false,
+  "schedulerClaimed": false,
+  "runnerClaimed": false,
+  "productionProofClaimed": false,
+  "meshTruthClaimed": false,
+  "noExecutionAuthorized": true,
+  "noSchedulerRunnerLiveDiscoveryOrMeshPublication": true,
+  "fixtureIsNotAdjacentTodo": true,
+  "fixtureIsNotAcceptedSchema": true,
+  "fixtureIsNotExecutionInstruction": true,
+  "readinessMeansOperatorReviewOnly": true,
+  "edgeDoesNotCallMutateJoinPublishExecuteScheduleRunDiscoverOrAdmit": true,
+  "unsupportedActions": [
+    "join_mesh",
+    "claim_mesh_participation",
+    "execute_mesh_job",
+    "admit_writer",
+    "discover_topology",
+    "accept_canonical_result",
+    "publish_to_mesh",
+    "write_to_mesh",
+    "commit_to_mesh",
+    "broadcast_to_mesh",
+    "replicate_through_mesh",
+    "execute_actor",
+    "execute_organism",
+    "start_runner",
+    "schedule_work",
+    "fetch_live_mesh",
+    "validate_runtime",
+    "treat_as_result_truth",
+    "treat_as_mesh_truth",
+    "treat_as_production_proof",
+    "treat_as_adjacent_acceptance",
+    "treat_as_schema_acceptance",
+    "treat_as_command",
+    "infer_adjacent_truth"
+  ],
+  "localOnly": true,
+  "explicitArtifactOnly": true,
+  "derivedOnly": true,
+  "discoversRepos": false,
+  "discoversTools": false,
+  "discoversEvidence": false,
+  "callsAdjacentRepo": false,
+  "callsTool": false,
+  "executesAction": false,
+  "schedulesWork": false,
+  "activatesPlatform": false,
+  "publishesToMesh": false,
+  "admitsWriter": false,
+  "grantsAuthority": false,
+  "infersReachability": false,
+  "infersMeshParticipation": false,
+  "infersAdjacentTruth": false,
+  "adjacentRepoAuthority": false,
+  "hiddenStateMutation": false
+}
