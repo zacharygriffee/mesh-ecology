@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import { writeSync } from "fs";
-import { access, readFile } from "fs/promises";
+import { access, mkdir, readFile, writeFile } from "fs/promises";
+import { createHash } from "crypto";
+import { EventEmitter } from "events";
 import { setTimeout as delay } from "timers/promises";
 import path from "path";
 import process from "process";
@@ -32,6 +34,7 @@ const DEFAULT_TIMEOUT_MS = 15_000;
 
 function printHelp() {
   writeSync(process.stdout.fd, [
+    "mesh concern setup --purpose <purpose> --root <path> [--json]",
     "mesh discovery advertise-concern --discovery <z32> --concern <z32> [--label text] [--wait|--no-wait] [--min-peers n] [--timeout-ms n] [--config path]",
     "mesh discovery advertise-discovery --discovery <z32> --nested <z32> [--label text] [--wait|--no-wait] [--min-peers n] [--timeout-ms n] [--config path]",
     "mesh discovery add-writer --discovery <z32> --writer <z32> [--wait|--no-wait] [--min-peers n] [--timeout-ms n] [--config path]",
@@ -63,7 +66,10 @@ function parseArgs(argv) {
 
   let command = "";
   let rest = [];
-  if (argv[0] === "discovery" && argv[1] === "advertise-concern") {
+  if (argv[0] === "concern" && argv[1] === "setup") {
+    command = "concern setup";
+    rest = argv.slice(2);
+  } else if (argv[0] === "discovery" && argv[1] === "advertise-concern") {
     command = "discovery advertise-concern";
     rest = argv.slice(2);
   } else if (argv[0] === "discovery" && argv[1] === "advertise-discovery") {
@@ -93,6 +99,10 @@ function parseArgs(argv) {
     }
     if (part === "--no-wait") {
       flags.wait = false;
+      continue;
+    }
+    if (command === "concern setup" && part === "--json") {
+      flags.json = true;
       continue;
     }
     const key = part.slice(2);
@@ -164,6 +174,13 @@ async function closeSwarm(swarm) {
   }
 }
 
+function createLocalSwarm() {
+  const swarm = new EventEmitter();
+  swarm.connections = new Set();
+  swarm.close = async () => {};
+  return swarm;
+}
+
 async function waitForSync(base, timeoutMs) {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
@@ -214,6 +231,39 @@ async function countView(view) {
   return count;
 }
 
+function purposeSlug(purpose) {
+  const trimmed = String(purpose || "").trim();
+  const slug = trimmed
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 64) || "concern";
+  const hash = createHash("sha256").update(trimmed).digest("hex").slice(0, 12);
+  return `${slug}-${hash}`;
+}
+
+function discoveryLabelForPurpose(purpose) {
+  const value = String(purpose || "").trim();
+  if (value.length <= 128) return value;
+  const hash = createHash("sha256").update(value).digest("hex").slice(0, 10);
+  return `${value.slice(0, 117)}-${hash}`;
+}
+
+function shellQuote(value) {
+  return `'${String(value).replace(/'/g, "'\\''")}'`;
+}
+
+async function writeSetupConfig(configPath, config) {
+  await mkdir(path.dirname(configPath), { recursive: true });
+  const body = {
+    corestoreDir: config.corestoreDir,
+    swarmTopics: config.swarmTopics,
+    swarmBootstrap: config.swarmBootstrap,
+    timeoutMs: config.timeoutMs
+  };
+  await writeFile(configPath, `${JSON.stringify(body, null, 2)}\n`);
+}
+
 async function withRuntime(config, fn) {
   const corestore = ensureCorestore(config.corestoreDir);
   if (typeof corestore.ready === "function") await corestore.ready();
@@ -239,6 +289,152 @@ async function withRuntime(config, fn) {
     await closeSwarm(swarm);
     await corestore.close?.().catch(() => {});
   }
+}
+
+async function withLocalRuntime(corestoreDir, fn) {
+  await mkdir(corestoreDir, { recursive: true });
+  const corestore = ensureCorestore(corestoreDir);
+  if (typeof corestore.ready === "function") await corestore.ready();
+  const swarm = createLocalSwarm();
+
+  try {
+    await fn({ corestore, swarm });
+  } finally {
+    await closeSwarm(swarm);
+    await corestore.close?.().catch(() => {});
+  }
+}
+
+async function cmdConcernSetup({ flags, config }) {
+  const purpose = String(flags.purpose || "").trim();
+  const root = flags.root ? path.resolve(String(flags.root)) : "";
+  const wantsJson = flags.json === true;
+
+  if (!purpose) throw new Error("--purpose is required");
+  if (!root) throw new Error("--root is required");
+
+  const purposeDir = path.join(root, "concerns", purposeSlug(purpose));
+  const storeDir = path.join(purposeDir, "store");
+  const configPath = path.join(purposeDir, "operator-cli.json");
+  const setupConfig = {
+    ...config,
+    corestoreDir: storeDir
+  };
+
+  await mkdir(purposeDir, { recursive: true });
+  await writeSetupConfig(configPath, setupConfig);
+
+  let result = null;
+  await withLocalRuntime(storeDir, async ({ corestore, swarm }) => {
+    const concern = await ensureConcernSurface(
+      corestore.namespace("mesh-operator-concern"),
+      swarm
+    );
+    const discovery = await ensureDiscoverySurface(
+      corestore.namespace("mesh-operator-discovery"),
+      {},
+      swarm
+    );
+
+    try {
+      await Promise.all([
+        waitUntilWritable(concern, setupConfig.timeoutMs),
+        waitUntilWritable(discovery, setupConfig.timeoutMs)
+      ]);
+
+      const concernKey = idEncoding.encode(concern.key);
+      const discoveryKey = idEncoding.encode(discovery.key);
+      if (discovery.writable) {
+        await addConcern(discovery, concernKey, discoveryLabelForPurpose(purpose));
+        await discovery.update({ wait: true }).catch(() => {});
+      }
+      await concern.update({ wait: true }).catch(() => {});
+
+      const jobs = await countView(getJobView(concern));
+      const pubs = await countView(getPublishView(concern));
+      const rats = await countView(getRatView(concern));
+      const concernLocalWriterKey = idEncoding.encode(concern.local.key);
+      const discoveryLocalWriterKey = idEncoding.encode(discovery.local.key);
+
+      const status = {
+        ok: true,
+        action: "status",
+        concern: concernKey,
+        writable: !!concern.writable,
+        swarmConnections: 0,
+        counts: {
+          jobs,
+          publish: pubs,
+          ratify: rats
+        }
+      };
+
+      result = {
+        ok: true,
+        action: "concern-setup",
+        purpose,
+        concernKey,
+        discoveryKey,
+        concernStore: {
+          path: storeDir,
+          namespace: "mesh-operator-concern",
+          ref: `${storeDir}#mesh-operator-concern`
+        },
+        discoveryStore: {
+          path: storeDir,
+          namespace: "mesh-operator-discovery",
+          ref: `${storeDir}#mesh-operator-discovery`
+        },
+        operatorStore: {
+          path: storeDir,
+          ref: storeDir
+        },
+        configPath,
+        configRefs: {
+          operatorCli: configPath
+        },
+        writer: {
+          posture: concern.writable ? "local-writer" : "local-readonly",
+          concernWritable: !!concern.writable,
+          concernLocalWriterKey,
+          discoveryWritable: !!discovery.writable,
+          discoveryLocalWriterKey
+        },
+        status,
+        posture: {
+          summary: "local persistent concern opened",
+          nonClaims: [
+            "does not claim canonical truth",
+            "does not claim actor response",
+            "does not claim job completion",
+            "does not claim production readiness"
+          ]
+        },
+        nextCommands: {
+          submitJob: `CORESTORE_DIR=${shellQuote(storeDir)} node packages/mesh-operator-cli/bin/mesh.js job submit --concern ${concernKey} --json <job.json> --no-wait`,
+          status: `CORESTORE_DIR=${shellQuote(storeDir)} node packages/mesh-operator-cli/bin/mesh.js status --concern ${concernKey}`,
+          submitJobWithConfig: `node packages/mesh-operator-cli/bin/mesh.js job submit --concern ${concernKey} --json <job.json> --no-wait --config ${shellQuote(configPath)}`,
+          statusWithConfig: `node packages/mesh-operator-cli/bin/mesh.js status --concern ${concernKey} --config ${shellQuote(configPath)}`
+        }
+      };
+    } finally {
+      await discovery.close().catch(() => {});
+      await concern.close().catch(() => {});
+    }
+  });
+
+  if (wantsJson) {
+    console.log(JSON.stringify(result, null, 2));
+    return;
+  }
+
+  console.log(`purpose: ${result.purpose}`);
+  console.log(`concernKey: ${result.concernKey}`);
+  console.log(`discoveryKey: ${result.discoveryKey}`);
+  console.log(`operatorStore: ${result.operatorStore.path}`);
+  console.log(`configPath: ${result.configPath}`);
+  console.log(`status: ${result.nextCommands.status}`);
+  console.log(`submit: ${result.nextCommands.submitJob}`);
 }
 
 async function cmdAdvertiseConcern({ flags, config }) {
@@ -492,6 +688,11 @@ async function main() {
   const configPath = flags.config || process.env.MESH_OPERATOR_CONFIG || DEFAULT_CONFIG_PATH;
   const fileConfig = await loadJsonIfPresent(configPath);
   const config = normalizeConfig({ fileConfig, env: process.env });
+
+  if (command === "concern setup") {
+    await cmdConcernSetup({ flags, config });
+    return;
+  }
 
   if (command === "discovery advertise-concern") {
     await cmdAdvertiseConcern({ flags, config });

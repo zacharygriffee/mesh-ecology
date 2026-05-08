@@ -7,6 +7,14 @@ This document defines machine-facing behavior for `packages/mesh-operator-cli/bi
 - No protocol/runtime semantic changes.
 - Contract applies to CLI write commands used by operators and agents.
 
+## Local Setup Command
+
+- `concern setup --purpose <purpose> --root <path> --json`
+
+This command creates or opens a purpose-scoped persistent store under `--root` and returns JSON only when `--json` is supplied. The JSON includes concern/discovery keys, store/config refs, local writer posture, status-shaped counts, and next commands for existing `job submit` and `status`.
+
+Setup is idempotent for the same purpose/root when the store remains in place. Setup does not introduce scheduling behavior and does not claim canonical truth, actor response, job completion, or production readiness.
+
 ## Write Commands
 
 - `discovery advertise-concern`

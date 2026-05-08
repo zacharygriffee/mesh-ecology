@@ -8,6 +8,43 @@ Compatibility note:
 - Preferred control-plane workflows now live in `mesh-ecology-packs` via `live:ctl`.
 - Use this runbook when you intentionally want direct CLI authority writes, not as the default operator UX.
 
+## Local Concern Setup
+
+For local/operator services that need a persistent named concern without owning Mesh internals:
+
+```bash
+node packages/mesh-operator-cli/bin/mesh.js concern setup \
+  --purpose <purpose> \
+  --root <path> \
+  --json
+```
+
+The command creates or opens a purpose-scoped store under `--root`, opens the concern and local discovery surfaces through Mesh code paths, and returns JSON with:
+
+- `purpose`
+- `concernKey`
+- `discoveryKey`
+- `concernStore`, `discoveryStore`, and `operatorStore` refs
+- `configPath` / `configRefs`
+- local writer posture and writer keys
+- status-shaped counts
+- next commands for `job submit` and `status`
+
+The command is idempotent for the same `--purpose` and `--root`: it reopens the same purpose-scoped store and returns the same concern/discovery keys. The output does not claim canonical truth, actor response, job completion, or production readiness.
+
+For a local single-store submit, use the returned `CORESTORE_DIR` and `--no-wait` unless a remote peer is expected:
+
+```bash
+CORESTORE_DIR=<returned-operator-store> \
+node packages/mesh-operator-cli/bin/mesh.js job submit \
+  --concern <returned-concern-key> \
+  --json <job.json> \
+  --no-wait
+
+CORESTORE_DIR=<returned-operator-store> \
+node packages/mesh-operator-cli/bin/mesh.js status --concern <returned-concern-key>
+```
+
 ## Prereqs
 
 - Repo checkout with dependencies installed.
