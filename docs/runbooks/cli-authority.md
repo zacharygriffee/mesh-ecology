@@ -45,6 +45,43 @@ CORESTORE_DIR=<returned-operator-store> \
 node packages/mesh-operator-cli/bin/mesh.js status --concern <returned-concern-key>
 ```
 
+## Mesh Generic Responder
+
+For the bounded Edge control-panel hello-status cap, Mesh owns the responder behavior. Edge should submit a job and then invoke this Mesh command rather than writing a response itself:
+
+```bash
+node packages/mesh-operator-cli/bin/mesh.js responder run \
+  --concern <returned-concern-key> \
+  --config <returned-config-path> \
+  --cap cap/edge/control-panel/hello-status \
+  --once \
+  --json
+```
+
+Authority limits:
+
+- supported cap is only `cap/edge/control-panel/hello-status`
+- opens and observes the concern through Mesh concern/job views
+- emits one Mesh-owned response as concern PUB evidence
+- does not mutate Edge files or assume Edge store paths
+- does not add scheduler/daemon behavior; `--once` exits after one handle or no-match
+- does not publish outside existing concern API/replication behavior
+
+Success prints JSON with `state:"handled"`, exit `0`, `handled:1`, `skipped:<n>`, `concernKey`, `jobKey`, `cap`, `responseKey`, `receiptKey`, `responderId`, `statusBefore`, `statusAfter`, and:
+
+```json
+{
+  "ok": true,
+  "cap": "cap/edge/control-panel/hello-status",
+  "message": "hello from mesh responder",
+  "handledBy": "mesh-v0-2.generic-responder"
+}
+```
+
+No pending matching job prints JSON with `ok:false`, `state:"no_match"`, `handled:0`, and `skipped:<n>`, then exits nonzero. Treat malformed JSON, fatal stderr, or any other nonzero state as failure.
+
+After a handled response, `status --concern <key> --config <operator-cli.json>` shows evidence in `counts.publish` and under `responders["mesh-v0-2.generic-responder"]`, including `handled`, `byCap`, and `latest`.
+
 ## Prereqs
 
 - Repo checkout with dependencies installed.
