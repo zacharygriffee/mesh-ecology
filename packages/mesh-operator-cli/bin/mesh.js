@@ -36,7 +36,24 @@ const DEFAULT_TIMEOUT_MS = 15_000;
 const GENERIC_RESPONDER_ID = "mesh-v0-2.generic-responder";
 const HELLO_STATUS_CAP = "cap/edge/control-panel/hello-status";
 const SELECTOR_INTENT_CAP = "cap/edge/control-panel/selector-intent";
-const SUPPORTED_RESPONDER_CAPS = new Set([HELLO_STATUS_CAP, SELECTOR_INTENT_CAP]);
+const YARD_LIGHTS_SET_STATE_CAP = "cap/edge/control-panel/yard-lights/set-state";
+const SUPPORTED_RESPONDER_CAPS = new Set([
+  HELLO_STATUS_CAP,
+  SELECTOR_INTENT_CAP,
+  YARD_LIGHTS_SET_STATE_CAP
+]);
+const YARD_LIGHTS_ACTOR_GROUP = "yard_lights";
+const YARD_LIGHTS_SELECTOR_KINDS = new Set(["explicit_actor_ids", "all_in_actor_group"]);
+const YARD_LIGHTS_REQUESTED_STATES = new Set(["on", "off"]);
+const YARD_LIGHTS_ALLOWED_INPUT_KEYS = new Set([
+  "actorGroup",
+  "selectorKind",
+  "actorIds",
+  "requestedState",
+  "sourceRatificationRef",
+  "operatorRef",
+  "requestId"
+]);
 
 function printHelp() {
   writeSync(process.stdout.fd, [
@@ -277,12 +294,23 @@ async function collectResponderEvidence(publishView) {
     const row = byId[responderId] || {
       handled: 0,
       byCap: {},
+      byCapCounts: {},
+      latestByCap: {},
       latest: null
     };
     const cap = pub.cap || meta.cap || null;
     row.handled += 1;
     if (cap) row.byCap[cap] = (row.byCap[cap] || 0) + 1;
-    row.latest = {
+    if (cap && !row.byCapCounts[cap]) {
+      row.byCapCounts[cap] = { handled: 0, skipped: 0 };
+    }
+    if (cap) {
+      row.byCapCounts[cap].handled += 1;
+      row.byCapCounts[cap].skipped += Number.isSafeInteger(meta.skipped)
+        ? meta.skipped
+        : Number.isSafeInteger(meta.response?.skipped) ? meta.response.skipped : 0;
+    }
+    const latest = {
       concernKey: meta.concernKey || null,
       jobKey: pub.ref?.k ? idEncoding.encode(pub.ref.k) : meta.jobKey || null,
       cap,
@@ -295,9 +323,13 @@ async function collectResponderEvidence(publishView) {
       expectedResultMode: meta.response?.expectedResultMode || null,
       responseMode: meta.response?.responseMode || null,
       responsesReturned: Array.isArray(meta.response?.responses) ? meta.response.responses.length : null,
+      admissionState: meta.response?.admissionState || null,
+      reasonCodes: Array.isArray(meta.response?.reasonCodes) ? meta.response.reasonCodes : null,
       posture: meta.posture || meta.response?.posture || null,
       response: meta.response || null
     };
+    row.latest = latest;
+    if (cap) row.latestByCap[cap] = latest;
     byId[responderId] = row;
   }
   return byId;
@@ -474,7 +506,8 @@ async function cmdConcernSetup({ flags, config }) {
           submitJobWithConfig: `node packages/mesh-operator-cli/bin/mesh.js job submit --concern ${concernKey} --json <job.json> --no-wait --config ${shellQuote(configPath)}`,
           statusWithConfig: `node packages/mesh-operator-cli/bin/mesh.js status --concern ${concernKey} --config ${shellQuote(configPath)}`,
           responderRunOnceWithConfig: `node packages/mesh-operator-cli/bin/mesh.js responder run --concern ${concernKey} --config ${shellQuote(configPath)} --cap ${HELLO_STATUS_CAP} --once --json`,
-          selectorResponderRunOnceWithConfig: `node packages/mesh-operator-cli/bin/mesh.js responder run --concern ${concernKey} --config ${shellQuote(configPath)} --cap ${SELECTOR_INTENT_CAP} --once --json`
+          selectorResponderRunOnceWithConfig: `node packages/mesh-operator-cli/bin/mesh.js responder run --concern ${concernKey} --config ${shellQuote(configPath)} --cap ${SELECTOR_INTENT_CAP} --once --json`,
+          yardLightsSetStateResponderRunOnceWithConfig: `node packages/mesh-operator-cli/bin/mesh.js responder run --concern ${concernKey} --config ${shellQuote(configPath)} --cap ${YARD_LIGHTS_SET_STATE_CAP} --once --json`
         }
       };
     } finally {
@@ -734,10 +767,48 @@ function validateSelectorIntentInput(input) {
   return true;
 }
 
+function isNonEmptyString(value) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function validateYardLightsSetStateInput(input) {
+  const reasonCodes = [];
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    return { ok: false, reasonCodes: ["invalid_payload"] };
+  }
+
+  for (const key of Object.keys(input)) {
+    if (!YARD_LIGHTS_ALLOWED_INPUT_KEYS.has(key)) {
+      reasonCodes.push("unsupported_payload_field");
+      break;
+    }
+  }
+
+  if (input.actorGroup !== YARD_LIGHTS_ACTOR_GROUP) reasonCodes.push("invalid_actor_group");
+  if (!YARD_LIGHTS_SELECTOR_KINDS.has(input.selectorKind)) reasonCodes.push("invalid_actor_selector");
+  if (input.selectorKind === "explicit_actor_ids") {
+    if (!Array.isArray(input.actorIds) || input.actorIds.length < 1) {
+      reasonCodes.push("invalid_actor_selector");
+    } else if (!input.actorIds.every((actorId) => isNonEmptyString(actorId) && actorId.length <= 128)) {
+      reasonCodes.push("invalid_actor_selector");
+    }
+  }
+  if (!YARD_LIGHTS_REQUESTED_STATES.has(input.requestedState)) reasonCodes.push("invalid_requested_state");
+  if (!isNonEmptyString(input.sourceRatificationRef)) reasonCodes.push("missing_source_ratification_ref");
+  if (!isNonEmptyString(input.operatorRef)) reasonCodes.push("missing_operator_ref");
+  if (!isNonEmptyString(input.requestId)) reasonCodes.push("missing_request_id");
+
+  return {
+    ok: reasonCodes.length === 0,
+    reasonCodes: [...new Set(reasonCodes)]
+  };
+}
+
 function isResponderJobMatch(job, cap) {
   if (job?.cap !== cap) return false;
   if (cap === HELLO_STATUS_CAP) return true;
   if (cap === SELECTOR_INTENT_CAP) return validateSelectorIntentInput(job.in);
+  if (cap === YARD_LIGHTS_SET_STATE_CAP) return true;
   return false;
 }
 
@@ -777,9 +848,77 @@ function selectorIntentResponse(input, context) {
   };
 }
 
+function yardLightsNonClaims() {
+  return {
+    physicalDeviceTruthClaimed: false,
+    jobCompletionClaimed: false,
+    projectCompletionClaimed: false,
+    edgeAuthorityClaimed: false,
+    meshTruthClaimed: false,
+    deviceMutationAttempted: false,
+    networkSideEffectAttempted: false,
+    shellCommandExecuted: false
+  };
+}
+
+function yardLightsSetStatePosture() {
+  return {
+    summary: "bounded ratified yard-lights set-state request evidence",
+    nonClaims: [
+      "does not claim physical device truth",
+      "does not claim job completion",
+      "does not claim project completion",
+      "does not claim Edge authority",
+      "does not claim Mesh truth",
+      "does not mutate devices",
+      "does not execute shell commands"
+    ]
+  };
+}
+
+function yardLightsSetStateResponse(input, context) {
+  const validation = validateYardLightsSetStateInput(input);
+  const common = {
+    cap: YARD_LIGHTS_SET_STATE_CAP,
+    requestId: isNonEmptyString(input?.requestId) ? input.requestId : null,
+    admissionState: validation.ok ? "admitted" : "rejected",
+    responseMode: "ratified_control_request_evidence",
+    handledBy: GENERIC_RESPONDER_ID,
+    responderId: GENERIC_RESPONDER_ID,
+    concernKey: context.concernKey,
+    jobKey: context.jobKey,
+    responseKey: context.responseKey,
+    receiptKey: context.responseKey,
+    handled: 1,
+    skipped: context.skipped,
+    posture: yardLightsSetStatePosture(),
+    ...yardLightsNonClaims()
+  };
+
+  if (!validation.ok) {
+    return {
+      ok: false,
+      ...common,
+      reasonCodes: validation.reasonCodes
+    };
+  }
+
+  return {
+    ok: true,
+    ...common,
+    actorGroup: YARD_LIGHTS_ACTOR_GROUP,
+    selectorKind: input.selectorKind,
+    ...(input.selectorKind === "explicit_actor_ids" ? { actorIds: input.actorIds } : {}),
+    requestedState: input.requestedState,
+    sourceRatificationRef: input.sourceRatificationRef,
+    operatorRef: input.operatorRef
+  };
+}
+
 function buildResponderResponse(cap, job, context) {
   if (cap === HELLO_STATUS_CAP) return helloStatusResponse();
   if (cap === SELECTOR_INTENT_CAP) return selectorIntentResponse(job.in, context);
+  if (cap === YARD_LIGHTS_SET_STATE_CAP) return yardLightsSetStateResponse(job.in, context);
   throw new Error(`unsupported responder cap: ${cap}`);
 }
 
@@ -893,6 +1032,8 @@ async function cmdResponderRun({ flags, config }) {
         jobKey: jobKeyZ32,
         cap,
         responseKey,
+        handled: 1,
+        skipped: found.skipped,
         response,
         posture,
         issuedAtMs: Date.now()
@@ -919,6 +1060,19 @@ async function cmdResponderRun({ flags, config }) {
         expectedResultMode: response.expectedResultMode,
         responseMode: response.responseMode,
         responses: response.responses,
+        handledBy: response.handledBy,
+        posture
+      } : {}),
+      ...(cap === YARD_LIGHTS_SET_STATE_CAP ? {
+        actorGroup: response.actorGroup || null,
+        selectorKind: response.selectorKind || null,
+        requestedState: response.requestedState || null,
+        requestId: response.requestId || null,
+        sourceRatificationRef: response.sourceRatificationRef || null,
+        operatorRef: response.operatorRef || null,
+        admissionState: response.admissionState,
+        responseMode: response.responseMode,
+        reasonCodes: response.reasonCodes || null,
         handledBy: response.handledBy,
         posture
       } : {}),
