@@ -47,7 +47,28 @@ node packages/mesh-operator-cli/bin/mesh.js status --concern <returned-concern-k
 
 ## Mesh Generic Responder
 
-For the bounded Edge control-panel hello-status cap, Mesh owns the responder behavior. Edge should submit a job and then invoke this Mesh command rather than writing a response itself:
+For bounded Edge control-panel responder caps, Mesh owns the responder behavior. Edge should submit a job and then invoke this Mesh command rather than writing a response itself:
+
+```bash
+node packages/mesh-operator-cli/bin/mesh.js responder run \
+  --concern <returned-concern-key> \
+  --config <returned-config-path> \
+  --cap <supported-cap> \
+  --once \
+  --json
+```
+
+Authority limits:
+
+- supported caps are `cap/edge/control-panel/hello-status` and `cap/edge/control-panel/selector-intent`
+- opens and observes the concern through Mesh concern/job views
+- emits one Mesh-owned response as concern PUB evidence
+- does not mutate Edge files or assume Edge store paths
+- does not add scheduler/daemon behavior; `--once` exits after one handle or no-match
+- does not publish outside existing concern API/replication behavior
+- selector-intent jobs invite plural responses; they do not select actors or assign actor obligation
+
+Hello-status:
 
 ```bash
 node packages/mesh-operator-cli/bin/mesh.js responder run \
@@ -57,15 +78,6 @@ node packages/mesh-operator-cli/bin/mesh.js responder run \
   --once \
   --json
 ```
-
-Authority limits:
-
-- supported cap is only `cap/edge/control-panel/hello-status`
-- opens and observes the concern through Mesh concern/job views
-- emits one Mesh-owned response as concern PUB evidence
-- does not mutate Edge files or assume Edge store paths
-- does not add scheduler/daemon behavior; `--once` exits after one handle or no-match
-- does not publish outside existing concern API/replication behavior
 
 Success prints JSON with `state:"handled"`, exit `0`, `handled:1`, `skipped:<n>`, `concernKey`, `jobKey`, `cap`, `responseKey`, `receiptKey`, `responderId`, `statusBefore`, `statusAfter`, and:
 
@@ -78,9 +90,24 @@ Success prints JSON with `state:"handled"`, exit `0`, `handled:1`, `skipped:<n>`
 }
 ```
 
+Selector-intent:
+
+```bash
+node packages/mesh-operator-cli/bin/mesh.js responder run \
+  --concern <returned-concern-key> \
+  --config <returned-config-path> \
+  --cap cap/edge/control-panel/selector-intent \
+  --once \
+  --json
+```
+
+The job input must use `requestKind:"mesh_concern_selector_intent"`, `actorGroup`, `selectorKind`, optional `desiredState`, and `expectedResultMode:"plural_responses"`. Success adds `actorGroup`, `selectorKind`, `expectedResultMode:"plural_responses"`, `responseMode:"plural_selector_response"`, a bounded `responses` array, and a `posture.nonClaims` list. Current fixture-like Mesh evidence includes `yard-light-alpha` and `yard-light-beta` as observed/eligible responses.
+
+Selector-intent output is response evidence only. It does not claim truth, completion, production proof, actor obligation, or canonical selection.
+
 No pending matching job prints JSON with `ok:false`, `state:"no_match"`, `handled:0`, and `skipped:<n>`, then exits nonzero. Treat malformed JSON, fatal stderr, or any other nonzero state as failure.
 
-After a handled response, `status --concern <key> --config <operator-cli.json>` shows evidence in `counts.publish` and under `responders["mesh-v0-2.generic-responder"]`, including `handled`, `byCap`, and `latest`.
+After a handled response, `status --concern <key> --config <operator-cli.json>` shows evidence in `counts.publish` and under `responders["mesh-v0-2.generic-responder"]`, including `handled`, `byCap`, and `latest`. For selector-intent, `latest` includes selector fields, `responseMode`, response count, and non-claim posture.
 
 ## Prereqs
 

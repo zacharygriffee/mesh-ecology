@@ -35,6 +35,8 @@ const DEFAULT_TOPIC_Z32 = idEncoding.encode(defaultTopics(1)[0]);
 const DEFAULT_TIMEOUT_MS = 15_000;
 const GENERIC_RESPONDER_ID = "mesh-v0-2.generic-responder";
 const HELLO_STATUS_CAP = "cap/edge/control-panel/hello-status";
+const SELECTOR_INTENT_CAP = "cap/edge/control-panel/selector-intent";
+const SUPPORTED_RESPONDER_CAPS = new Set([HELLO_STATUS_CAP, SELECTOR_INTENT_CAP]);
 
 function printHelp() {
   writeSync(process.stdout.fd, [
@@ -43,7 +45,7 @@ function printHelp() {
     "mesh discovery advertise-discovery --discovery <z32> --nested <z32> [--label text] [--wait|--no-wait] [--min-peers n] [--timeout-ms n] [--config path]",
     "mesh discovery add-writer --discovery <z32> --writer <z32> [--wait|--no-wait] [--min-peers n] [--timeout-ms n] [--config path]",
     "mesh job submit --concern <z32> --json <path> [--wait|--no-wait] [--min-peers n] [--timeout-ms n] [--config path]",
-    "mesh responder run --concern <z32> --config <path> --cap cap/edge/control-panel/hello-status --once --json",
+    "mesh responder run --concern <z32> --config <path> --cap <supported-cap> --once --json",
     "mesh status --concern <z32> [--config path]",
     "",
     "Control-plane note:",
@@ -287,7 +289,14 @@ async function collectResponderEvidence(publishView) {
       responseKey: pub.ref?.a ? idEncoding.encode(pub.ref.a) : meta.responseKey || null,
       responderId,
       handledBy: meta.handledBy || responderId,
-      message: meta.response?.message || null
+      message: meta.response?.message || null,
+      actorGroup: meta.response?.actorGroup || null,
+      selectorKind: meta.response?.selectorKind || null,
+      expectedResultMode: meta.response?.expectedResultMode || null,
+      responseMode: meta.response?.responseMode || null,
+      responsesReturned: Array.isArray(meta.response?.responses) ? meta.response.responses.length : null,
+      posture: meta.posture || meta.response?.posture || null,
+      response: meta.response || null
     };
     byId[responderId] = row;
   }
@@ -464,7 +473,8 @@ async function cmdConcernSetup({ flags, config }) {
           status: `CORESTORE_DIR=${shellQuote(storeDir)} node packages/mesh-operator-cli/bin/mesh.js status --concern ${concernKey}`,
           submitJobWithConfig: `node packages/mesh-operator-cli/bin/mesh.js job submit --concern ${concernKey} --json <job.json> --no-wait --config ${shellQuote(configPath)}`,
           statusWithConfig: `node packages/mesh-operator-cli/bin/mesh.js status --concern ${concernKey} --config ${shellQuote(configPath)}`,
-          responderRunOnceWithConfig: `node packages/mesh-operator-cli/bin/mesh.js responder run --concern ${concernKey} --config ${shellQuote(configPath)} --cap ${HELLO_STATUS_CAP} --once --json`
+          responderRunOnceWithConfig: `node packages/mesh-operator-cli/bin/mesh.js responder run --concern ${concernKey} --config ${shellQuote(configPath)} --cap ${HELLO_STATUS_CAP} --once --json`,
+          selectorResponderRunOnceWithConfig: `node packages/mesh-operator-cli/bin/mesh.js responder run --concern ${concernKey} --config ${shellQuote(configPath)} --cap ${SELECTOR_INTENT_CAP} --once --json`
         }
       };
     } finally {
@@ -701,6 +711,78 @@ function helloStatusResponse() {
   };
 }
 
+function selectorIntentPosture() {
+  return {
+    summary: "bounded selector-intent response evidence",
+    nonClaims: [
+      "does not select actors",
+      "does not assign actor obligation",
+      "does not claim canonical selection",
+      "does not claim completion",
+      "does not claim production proof",
+      "does not require Edge to enumerate actors"
+    ]
+  };
+}
+
+function validateSelectorIntentInput(input) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return false;
+  if (input.requestKind !== "mesh_concern_selector_intent") return false;
+  if (typeof input.actorGroup !== "string" || !input.actorGroup.trim()) return false;
+  if (typeof input.selectorKind !== "string" || !input.selectorKind.trim()) return false;
+  if (input.expectedResultMode !== "plural_responses") return false;
+  return true;
+}
+
+function isResponderJobMatch(job, cap) {
+  if (job?.cap !== cap) return false;
+  if (cap === HELLO_STATUS_CAP) return true;
+  if (cap === SELECTOR_INTENT_CAP) return validateSelectorIntentInput(job.in);
+  return false;
+}
+
+function selectorIntentResponse(input, context) {
+  const posture = selectorIntentPosture();
+  return {
+    ok: true,
+    cap: SELECTOR_INTENT_CAP,
+    actorGroup: input.actorGroup,
+    selectorKind: input.selectorKind,
+    desiredState: Object.prototype.hasOwnProperty.call(input, "desiredState") ? input.desiredState : null,
+    expectedResultMode: "plural_responses",
+    responseMode: "plural_selector_response",
+    responses: [
+      {
+        actorId: "yard-light-alpha",
+        actorGroup: input.actorGroup,
+        observed: true,
+        eligibility: "eligible"
+      },
+      {
+        actorId: "yard-light-beta",
+        actorGroup: input.actorGroup,
+        observed: true,
+        eligibility: "eligible"
+      }
+    ],
+    handledBy: GENERIC_RESPONDER_ID,
+    responderId: GENERIC_RESPONDER_ID,
+    concernKey: context.concernKey,
+    jobKey: context.jobKey,
+    responseKey: context.responseKey,
+    receiptKey: context.responseKey,
+    handled: 1,
+    skipped: context.skipped,
+    posture
+  };
+}
+
+function buildResponderResponse(cap, job, context) {
+  if (cap === HELLO_STATUS_CAP) return helloStatusResponse();
+  if (cap === SELECTOR_INTENT_CAP) return selectorIntentResponse(job.in, context);
+  throw new Error(`unsupported responder cap: ${cap}`);
+}
+
 async function hasResponderPubForJob(publishView, jobKey, cap, responderId) {
   const jobPubs = publishView.sub(jobKey, { valueEncoding: publishView.valueEncoding });
   for await (const entry of jobPubs.createReadStream({ valueEncoding: publishView.valueEncoding })) {
@@ -720,7 +802,7 @@ async function findNextResponderJob(concern, cap, responderId) {
   for await (const entry of jobView.createReadStream({ valueEncoding: jobView.valueEncoding })) {
     const jobKey = entry.key;
     const job = entry.value;
-    if (job?.cap !== cap) {
+    if (!isResponderJobMatch(job, cap)) {
       skipped += 1;
       continue;
     }
@@ -741,7 +823,7 @@ async function cmdResponderRun({ flags, config }) {
 
   if (!concernKey) throw new Error("--concern is required");
   if (!cap) throw new Error("--cap is required");
-  if (cap !== HELLO_STATUS_CAP) throw new Error(`unsupported --cap for generic responder: ${cap}`);
+  if (!SUPPORTED_RESPONDER_CAPS.has(cap)) throw new Error(`unsupported --cap for generic responder: ${cap}`);
   if (flags.once !== true) throw new Error("--once is required; responder daemon behavior is not implemented");
 
   await withRuntime(config, async ({ corestore, swarm, joinTopic }) => {
@@ -788,10 +870,16 @@ async function cmdResponderRun({ flags, config }) {
     }
 
     const attempt = random32();
-    const response = helloStatusResponse();
     const jobKey = found.jobKey;
     const jobKeyZ32 = idEncoding.encode(jobKey);
     const responseKey = idEncoding.encode(attempt);
+    const response = buildResponderResponse(cap, found.job, {
+      concernKey,
+      jobKey: jobKeyZ32,
+      responseKey,
+      skipped: found.skipped
+    });
+    const posture = response.posture || null;
 
     await publishJobWork(
       concern,
@@ -806,6 +894,7 @@ async function cmdResponderRun({ flags, config }) {
         cap,
         responseKey,
         response,
+        posture,
         issuedAtMs: Date.now()
       }
     );
@@ -824,6 +913,15 @@ async function cmdResponderRun({ flags, config }) {
       responderId,
       handled: 1,
       skipped: found.skipped,
+      ...(cap === SELECTOR_INTENT_CAP ? {
+        actorGroup: response.actorGroup,
+        selectorKind: response.selectorKind,
+        expectedResultMode: response.expectedResultMode,
+        responseMode: response.responseMode,
+        responses: response.responses,
+        handledBy: response.handledBy,
+        posture
+      } : {}),
       response,
       statusBefore,
       statusAfter

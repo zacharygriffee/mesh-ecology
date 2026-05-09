@@ -23,15 +23,26 @@ Setup is idempotent for the same purpose/root when the store remains in place. S
 
 ## Responder Command
 
-- `responder run --concern <concern-z32> --config <operator-cli.json> --cap cap/edge/control-panel/hello-status --once --json`
+- `responder run --concern <concern-z32> --config <operator-cli.json> --cap <supported-cap> --once --json`
 
 This command is a bounded Mesh-owned responder loop. It opens the concern through Mesh concern APIs, reads the job view, skips jobs outside the requested cap, skips jobs already handled by `mesh-v0-2.generic-responder`, publishes one Mesh-owned response as concern PUB evidence, prints JSON, and exits. It is not a scheduler, daemon, Edge mutation command, or external network publication path beyond existing concern replication behavior.
 
-Only this cap is supported:
+Supported caps:
 
 - `cap/edge/control-panel/hello-status`
+- `cap/edge/control-panel/selector-intent`
 
-Successful output has this shape:
+`selector-intent` jobs must use:
+
+- `in.requestKind: "mesh_concern_selector_intent"`
+- `in.actorGroup`, for example `"yard_lights"`
+- `in.selectorKind`, for example `"all_in_actor_group"`
+- optional `in.desiredState`
+- `in.expectedResultMode: "plural_responses"`
+
+Selector-intent jobs invite plural Mesh-owned response evidence. They do not select actors, assign actor obligation, claim completion, prove production readiness, or require Edge to enumerate actors.
+
+Successful hello-status output has this shape:
 
 ```json
 {
@@ -57,6 +68,42 @@ Successful output has this shape:
 }
 ```
 
+Successful selector-intent output keeps the same envelope and adds selector evidence:
+
+```json
+{
+  "ok": true,
+  "action": "responder-run",
+  "state": "handled",
+  "concernKey": "<concern-z32>",
+  "jobKey": "<job-z32>",
+  "cap": "cap/edge/control-panel/selector-intent",
+  "actorGroup": "yard_lights",
+  "selectorKind": "all_in_actor_group",
+  "expectedResultMode": "plural_responses",
+  "responseMode": "plural_selector_response",
+  "responses": [
+    {"actorId": "yard-light-alpha", "observed": true, "eligibility": "eligible"},
+    {"actorId": "yard-light-beta", "observed": true, "eligibility": "eligible"}
+  ],
+  "handledBy": "mesh-v0-2.generic-responder",
+  "responderId": "mesh-v0-2.generic-responder",
+  "responseKey": "<attempt-z32>",
+  "receiptKey": "<attempt-z32>",
+  "handled": 1,
+  "skipped": 0,
+  "posture": {
+    "nonClaims": [
+      "does not select actors",
+      "does not assign actor obligation",
+      "does not claim canonical selection"
+    ]
+  },
+  "statusBefore": {"counts": {"jobs": 1, "publish": 0, "ratify": 0}},
+  "statusAfter": {"counts": {"jobs": 1, "publish": 1, "ratify": 0}}
+}
+```
+
 When no matching pending job exists, the command prints JSON with `ok:false`, `state:"no_match"`, `handled:0`, `skipped:<n>`, `statusBefore`, and `statusAfter`, then exits nonzero. Automation should treat `state:"handled"` plus exit `0` as success, `state:"no_match"` as a blocked/no-work condition, and any invalid JSON or fatal stderr as failure.
 
 `status --concern` includes responder evidence under:
@@ -64,6 +111,7 @@ When no matching pending job exists, the command prints JSON with `ok:false`, `s
 - `counts.publish`
 - `responders["mesh-v0-2.generic-responder"].handled`
 - `responders["mesh-v0-2.generic-responder"].byCap["cap/edge/control-panel/hello-status"]`
+- `responders["mesh-v0-2.generic-responder"].byCap["cap/edge/control-panel/selector-intent"]`
 - `responders["mesh-v0-2.generic-responder"].latest`
 
 ## Durability Barrier
