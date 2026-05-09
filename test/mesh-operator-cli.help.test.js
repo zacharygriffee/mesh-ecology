@@ -13,6 +13,8 @@ test("mesh operator CLI help lists advertise-discovery", (t) => {
 
   t.is(res.status, 0, `help failed: ${res.stderr || res.stdout}`);
   const out = String(res.stdout || "");
+  t.ok(out.includes("mesh concern setup --purpose <purpose> --root <path> [--json]"));
   t.ok(out.includes("mesh discovery advertise-discovery --discovery <z32> --nested <z32>"));
+  t.ok(out.includes("mesh responder run --concern <z32> --config <path> --cap <supported-cap> --once --json"));
   t.ok(out.includes("For normal operator workflows, prefer mesh-ecology-packs live:ctl."));
 });

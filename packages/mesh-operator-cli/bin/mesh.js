@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import { writeSync } from "fs";
-import { access, readFile } from "fs/promises";
+import { access, mkdir, readFile, writeFile } from "fs/promises";
+import { createHash } from "crypto";
+import { EventEmitter } from "events";
 import { setTimeout as delay } from "timers/promises";
 import path from "path";
 import process from "process";
@@ -19,9 +21,11 @@ import {
   createJob,
   getJobView,
   getPublishView,
-  getRatView
+  getRatView,
+  publishJobWork
 } from "../../../src/concern.js";
 import { defaultTopics } from "../../../src/util/createKeyPair.js";
+import { random32 } from "../../../src/util/random32.js";
 import { normalizeOperatorCliConfig } from "../../../src/util/runtime-host-config.js";
 import { waitForDurability } from "../lib/waitForDurability.js";
 
@@ -29,13 +33,19 @@ const DEFAULT_CONFIG_PATH = "/etc/mesh/operator-cli.json";
 const DEFAULT_CORESTORE_DIR = "./store/operator-cli";
 const DEFAULT_TOPIC_Z32 = idEncoding.encode(defaultTopics(1)[0]);
 const DEFAULT_TIMEOUT_MS = 15_000;
+const GENERIC_RESPONDER_ID = "mesh-v0-2.generic-responder";
+const HELLO_STATUS_CAP = "cap/edge/control-panel/hello-status";
+const SELECTOR_INTENT_CAP = "cap/edge/control-panel/selector-intent";
+const SUPPORTED_RESPONDER_CAPS = new Set([HELLO_STATUS_CAP, SELECTOR_INTENT_CAP]);
 
 function printHelp() {
   writeSync(process.stdout.fd, [
+    "mesh concern setup --purpose <purpose> --root <path> [--json]",
     "mesh discovery advertise-concern --discovery <z32> --concern <z32> [--label text] [--wait|--no-wait] [--min-peers n] [--timeout-ms n] [--config path]",
     "mesh discovery advertise-discovery --discovery <z32> --nested <z32> [--label text] [--wait|--no-wait] [--min-peers n] [--timeout-ms n] [--config path]",
     "mesh discovery add-writer --discovery <z32> --writer <z32> [--wait|--no-wait] [--min-peers n] [--timeout-ms n] [--config path]",
     "mesh job submit --concern <z32> --json <path> [--wait|--no-wait] [--min-peers n] [--timeout-ms n] [--config path]",
+    "mesh responder run --concern <z32> --config <path> --cap <supported-cap> --once --json",
     "mesh status --concern <z32> [--config path]",
     "",
     "Control-plane note:",
@@ -63,7 +73,10 @@ function parseArgs(argv) {
 
   let command = "";
   let rest = [];
-  if (argv[0] === "discovery" && argv[1] === "advertise-concern") {
+  if (argv[0] === "concern" && argv[1] === "setup") {
+    command = "concern setup";
+    rest = argv.slice(2);
+  } else if (argv[0] === "discovery" && argv[1] === "advertise-concern") {
     command = "discovery advertise-concern";
     rest = argv.slice(2);
   } else if (argv[0] === "discovery" && argv[1] === "advertise-discovery") {
@@ -74,6 +87,9 @@ function parseArgs(argv) {
     rest = argv.slice(2);
   } else if (argv[0] === "job" && argv[1] === "submit") {
     command = "job submit";
+    rest = argv.slice(2);
+  } else if (argv[0] === "responder" && argv[1] === "run") {
+    command = "responder run";
     rest = argv.slice(2);
   } else if (argv[0] === "status") {
     command = "status";
@@ -93,6 +109,14 @@ function parseArgs(argv) {
     }
     if (part === "--no-wait") {
       flags.wait = false;
+      continue;
+    }
+    if ((command === "concern setup" || command === "responder run") && part === "--json") {
+      flags.json = true;
+      continue;
+    }
+    if (command === "responder run" && part === "--once") {
+      flags.once = true;
       continue;
     }
     const key = part.slice(2);
@@ -164,6 +188,13 @@ async function closeSwarm(swarm) {
   }
 }
 
+function createLocalSwarm() {
+  const swarm = new EventEmitter();
+  swarm.connections = new Set();
+  swarm.close = async () => {};
+  return swarm;
+}
+
 async function waitForSync(base, timeoutMs) {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
@@ -214,6 +245,97 @@ async function countView(view) {
   return count;
 }
 
+async function collectConcernStatus(concern, swarm) {
+  const jobs = await countView(getJobView(concern));
+  const pubs = await countView(getPublishView(concern));
+  const rats = await countView(getRatView(concern));
+  const responders = await collectResponderEvidence(getPublishView(concern));
+
+  return {
+    ok: true,
+    action: "status",
+    concern: idEncoding.encode(concern.key),
+    writable: !!concern.writable,
+    swarmConnections: swarm.connections?.size ?? 0,
+    counts: {
+      jobs,
+      publish: pubs,
+      ratify: rats
+    },
+    responders
+  };
+}
+
+async function collectResponderEvidence(publishView) {
+  const byId = {};
+  for await (const entry of publishView.createReadStream({ valueEncoding: publishView.valueEncoding })) {
+    const pub = entry.value;
+    const meta = pub?.meta;
+    const responderId = meta?.responderId || meta?.handledBy;
+    if (!responderId) continue;
+
+    const row = byId[responderId] || {
+      handled: 0,
+      byCap: {},
+      latest: null
+    };
+    const cap = pub.cap || meta.cap || null;
+    row.handled += 1;
+    if (cap) row.byCap[cap] = (row.byCap[cap] || 0) + 1;
+    row.latest = {
+      concernKey: meta.concernKey || null,
+      jobKey: pub.ref?.k ? idEncoding.encode(pub.ref.k) : meta.jobKey || null,
+      cap,
+      responseKey: pub.ref?.a ? idEncoding.encode(pub.ref.a) : meta.responseKey || null,
+      responderId,
+      handledBy: meta.handledBy || responderId,
+      message: meta.response?.message || null,
+      actorGroup: meta.response?.actorGroup || null,
+      selectorKind: meta.response?.selectorKind || null,
+      expectedResultMode: meta.response?.expectedResultMode || null,
+      responseMode: meta.response?.responseMode || null,
+      responsesReturned: Array.isArray(meta.response?.responses) ? meta.response.responses.length : null,
+      posture: meta.posture || meta.response?.posture || null,
+      response: meta.response || null
+    };
+    byId[responderId] = row;
+  }
+  return byId;
+}
+
+function purposeSlug(purpose) {
+  const trimmed = String(purpose || "").trim();
+  const slug = trimmed
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 64) || "concern";
+  const hash = createHash("sha256").update(trimmed).digest("hex").slice(0, 12);
+  return `${slug}-${hash}`;
+}
+
+function discoveryLabelForPurpose(purpose) {
+  const value = String(purpose || "").trim();
+  if (value.length <= 128) return value;
+  const hash = createHash("sha256").update(value).digest("hex").slice(0, 10);
+  return `${value.slice(0, 117)}-${hash}`;
+}
+
+function shellQuote(value) {
+  return `'${String(value).replace(/'/g, "'\\''")}'`;
+}
+
+async function writeSetupConfig(configPath, config) {
+  await mkdir(path.dirname(configPath), { recursive: true });
+  const body = {
+    corestoreDir: config.corestoreDir,
+    swarmTopics: config.swarmTopics,
+    swarmBootstrap: config.swarmBootstrap,
+    timeoutMs: config.timeoutMs
+  };
+  await writeFile(configPath, `${JSON.stringify(body, null, 2)}\n`);
+}
+
 async function withRuntime(config, fn) {
   const corestore = ensureCorestore(config.corestoreDir);
   if (typeof corestore.ready === "function") await corestore.ready();
@@ -239,6 +361,140 @@ async function withRuntime(config, fn) {
     await closeSwarm(swarm);
     await corestore.close?.().catch(() => {});
   }
+}
+
+async function withLocalRuntime(corestoreDir, fn) {
+  await mkdir(corestoreDir, { recursive: true });
+  const corestore = ensureCorestore(corestoreDir);
+  if (typeof corestore.ready === "function") await corestore.ready();
+  const swarm = createLocalSwarm();
+
+  try {
+    await fn({ corestore, swarm });
+  } finally {
+    await closeSwarm(swarm);
+    await corestore.close?.().catch(() => {});
+  }
+}
+
+async function cmdConcernSetup({ flags, config }) {
+  const purpose = String(flags.purpose || "").trim();
+  const root = flags.root ? path.resolve(String(flags.root)) : "";
+  const wantsJson = flags.json === true;
+
+  if (!purpose) throw new Error("--purpose is required");
+  if (!root) throw new Error("--root is required");
+
+  const purposeDir = path.join(root, "concerns", purposeSlug(purpose));
+  const storeDir = path.join(purposeDir, "store");
+  const configPath = path.join(purposeDir, "operator-cli.json");
+  const setupConfig = {
+    ...config,
+    corestoreDir: storeDir
+  };
+
+  await mkdir(purposeDir, { recursive: true });
+  await writeSetupConfig(configPath, setupConfig);
+
+  let result = null;
+  await withLocalRuntime(storeDir, async ({ corestore, swarm }) => {
+    const concern = await ensureConcernSurface(
+      corestore.namespace("mesh-operator-concern"),
+      swarm
+    );
+    const discovery = await ensureDiscoverySurface(
+      corestore.namespace("mesh-operator-discovery"),
+      {},
+      swarm
+    );
+
+    try {
+      await Promise.all([
+        waitUntilWritable(concern, setupConfig.timeoutMs),
+        waitUntilWritable(discovery, setupConfig.timeoutMs)
+      ]);
+
+      const concernKey = idEncoding.encode(concern.key);
+      const discoveryKey = idEncoding.encode(discovery.key);
+      if (discovery.writable) {
+        await addConcern(discovery, concernKey, discoveryLabelForPurpose(purpose));
+        await discovery.update({ wait: true }).catch(() => {});
+      }
+      await concern.update({ wait: true }).catch(() => {});
+
+      const concernLocalWriterKey = idEncoding.encode(concern.local.key);
+      const discoveryLocalWriterKey = idEncoding.encode(discovery.local.key);
+
+      const status = await collectConcernStatus(concern, swarm);
+
+      result = {
+        ok: true,
+        action: "concern-setup",
+        purpose,
+        concernKey,
+        discoveryKey,
+        concernStore: {
+          path: storeDir,
+          namespace: "mesh-operator-concern",
+          ref: `${storeDir}#mesh-operator-concern`
+        },
+        discoveryStore: {
+          path: storeDir,
+          namespace: "mesh-operator-discovery",
+          ref: `${storeDir}#mesh-operator-discovery`
+        },
+        operatorStore: {
+          path: storeDir,
+          ref: storeDir
+        },
+        configPath,
+        configRefs: {
+          operatorCli: configPath
+        },
+        writer: {
+          posture: concern.writable ? "local-writer" : "local-readonly",
+          concernWritable: !!concern.writable,
+          concernLocalWriterKey,
+          discoveryWritable: !!discovery.writable,
+          discoveryLocalWriterKey
+        },
+        status,
+        posture: {
+          summary: "local persistent concern opened",
+          nonClaims: [
+            "does not claim canonical truth",
+            "does not claim actor response",
+            "does not claim job completion",
+            "does not claim production readiness"
+          ]
+        },
+        nextCommands: {
+          submitJob: `CORESTORE_DIR=${shellQuote(storeDir)} node packages/mesh-operator-cli/bin/mesh.js job submit --concern ${concernKey} --json <job.json> --no-wait`,
+          status: `CORESTORE_DIR=${shellQuote(storeDir)} node packages/mesh-operator-cli/bin/mesh.js status --concern ${concernKey}`,
+          submitJobWithConfig: `node packages/mesh-operator-cli/bin/mesh.js job submit --concern ${concernKey} --json <job.json> --no-wait --config ${shellQuote(configPath)}`,
+          statusWithConfig: `node packages/mesh-operator-cli/bin/mesh.js status --concern ${concernKey} --config ${shellQuote(configPath)}`,
+          responderRunOnceWithConfig: `node packages/mesh-operator-cli/bin/mesh.js responder run --concern ${concernKey} --config ${shellQuote(configPath)} --cap ${HELLO_STATUS_CAP} --once --json`,
+          selectorResponderRunOnceWithConfig: `node packages/mesh-operator-cli/bin/mesh.js responder run --concern ${concernKey} --config ${shellQuote(configPath)} --cap ${SELECTOR_INTENT_CAP} --once --json`
+        }
+      };
+    } finally {
+      await discovery.close().catch(() => {});
+      await concern.close().catch(() => {});
+    }
+  });
+
+  if (wantsJson) {
+    console.log(JSON.stringify(result, null, 2));
+    return;
+  }
+
+  console.log(`purpose: ${result.purpose}`);
+  console.log(`concernKey: ${result.concernKey}`);
+  console.log(`discoveryKey: ${result.discoveryKey}`);
+  console.log(`operatorStore: ${result.operatorStore.path}`);
+  console.log(`configPath: ${result.configPath}`);
+  console.log(`status: ${result.nextCommands.status}`);
+  console.log(`submit: ${result.nextCommands.submitJob}`);
 }
 
 async function cmdAdvertiseConcern({ flags, config }) {
@@ -446,6 +702,235 @@ async function cmdJobSubmit({ flags, config }) {
   });
 }
 
+function helloStatusResponse() {
+  return {
+    ok: true,
+    cap: HELLO_STATUS_CAP,
+    message: "hello from mesh responder",
+    handledBy: GENERIC_RESPONDER_ID
+  };
+}
+
+function selectorIntentPosture() {
+  return {
+    summary: "bounded selector-intent response evidence",
+    nonClaims: [
+      "does not select actors",
+      "does not assign actor obligation",
+      "does not claim canonical selection",
+      "does not claim completion",
+      "does not claim production proof",
+      "does not require Edge to enumerate actors"
+    ]
+  };
+}
+
+function validateSelectorIntentInput(input) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return false;
+  if (input.requestKind !== "mesh_concern_selector_intent") return false;
+  if (typeof input.actorGroup !== "string" || !input.actorGroup.trim()) return false;
+  if (typeof input.selectorKind !== "string" || !input.selectorKind.trim()) return false;
+  if (input.expectedResultMode !== "plural_responses") return false;
+  return true;
+}
+
+function isResponderJobMatch(job, cap) {
+  if (job?.cap !== cap) return false;
+  if (cap === HELLO_STATUS_CAP) return true;
+  if (cap === SELECTOR_INTENT_CAP) return validateSelectorIntentInput(job.in);
+  return false;
+}
+
+function selectorIntentResponse(input, context) {
+  const posture = selectorIntentPosture();
+  return {
+    ok: true,
+    cap: SELECTOR_INTENT_CAP,
+    actorGroup: input.actorGroup,
+    selectorKind: input.selectorKind,
+    desiredState: Object.prototype.hasOwnProperty.call(input, "desiredState") ? input.desiredState : null,
+    expectedResultMode: "plural_responses",
+    responseMode: "plural_selector_response",
+    responses: [
+      {
+        actorId: "yard-light-alpha",
+        actorGroup: input.actorGroup,
+        observed: true,
+        eligibility: "eligible"
+      },
+      {
+        actorId: "yard-light-beta",
+        actorGroup: input.actorGroup,
+        observed: true,
+        eligibility: "eligible"
+      }
+    ],
+    handledBy: GENERIC_RESPONDER_ID,
+    responderId: GENERIC_RESPONDER_ID,
+    concernKey: context.concernKey,
+    jobKey: context.jobKey,
+    responseKey: context.responseKey,
+    receiptKey: context.responseKey,
+    handled: 1,
+    skipped: context.skipped,
+    posture
+  };
+}
+
+function buildResponderResponse(cap, job, context) {
+  if (cap === HELLO_STATUS_CAP) return helloStatusResponse();
+  if (cap === SELECTOR_INTENT_CAP) return selectorIntentResponse(job.in, context);
+  throw new Error(`unsupported responder cap: ${cap}`);
+}
+
+async function hasResponderPubForJob(publishView, jobKey, cap, responderId) {
+  const jobPubs = publishView.sub(jobKey, { valueEncoding: publishView.valueEncoding });
+  for await (const entry of jobPubs.createReadStream({ valueEncoding: publishView.valueEncoding })) {
+    const pub = entry.value;
+    const meta = pub?.meta;
+    if (pub?.cap !== cap) continue;
+    if (meta?.responderId === responderId || meta?.handledBy === responderId) return true;
+  }
+  return false;
+}
+
+async function findNextResponderJob(concern, cap, responderId) {
+  const jobView = getJobView(concern);
+  const publishView = getPublishView(concern);
+  let skipped = 0;
+
+  for await (const entry of jobView.createReadStream({ valueEncoding: jobView.valueEncoding })) {
+    const jobKey = entry.key;
+    const job = entry.value;
+    if (!isResponderJobMatch(job, cap)) {
+      skipped += 1;
+      continue;
+    }
+    if (await hasResponderPubForJob(publishView, jobKey, cap, responderId)) {
+      skipped += 1;
+      continue;
+    }
+    return { jobKey, job, skipped };
+  }
+
+  return { jobKey: null, job: null, skipped };
+}
+
+async function cmdResponderRun({ flags, config }) {
+  const concernKey = flags.concern;
+  const cap = flags.cap;
+  const responderId = GENERIC_RESPONDER_ID;
+
+  if (!concernKey) throw new Error("--concern is required");
+  if (!cap) throw new Error("--cap is required");
+  if (!SUPPORTED_RESPONDER_CAPS.has(cap)) throw new Error(`unsupported --cap for generic responder: ${cap}`);
+  if (flags.once !== true) throw new Error("--once is required; responder daemon behavior is not implemented");
+
+  await withRuntime(config, async ({ corestore, swarm, joinTopic }) => {
+    const concernKeyBuf = idEncoding.decode(concernKey);
+    joinTopic(concernKeyBuf, "concern-key");
+
+    const concern = await ensureConcernSurface(
+      corestore.namespace("mesh-operator-concern"),
+      swarm,
+      { key: concernKeyBuf }
+    );
+
+    await waitUntilWritable(concern, config.timeoutMs);
+
+    if (!concern.writable) {
+      const writer = idEncoding.encode(concern.local.key);
+      throw new Error(
+        `concern is not writable from this operator corestore. local writer=${writer} (admit this key on writable concern host via CONCERN_WRITERS)`
+      );
+    }
+
+    await concern.update({ wait: true }).catch(() => {});
+    const statusBefore = await collectConcernStatus(concern, swarm);
+    const found = await findNextResponderJob(concern, cap, responderId);
+
+    if (!found.jobKey) {
+      const out = {
+        ok: false,
+        action: "responder-run",
+        state: "no_match",
+        reason: "no matching pending job",
+        concernKey,
+        cap,
+        responderId,
+        handled: 0,
+        skipped: found.skipped,
+        statusBefore,
+        statusAfter: statusBefore
+      };
+      console.log(JSON.stringify(out, null, 2));
+      process.exitCode = 2;
+      await concern.close().catch(() => {});
+      return;
+    }
+
+    const attempt = random32();
+    const jobKey = found.jobKey;
+    const jobKeyZ32 = idEncoding.encode(jobKey);
+    const responseKey = idEncoding.encode(attempt);
+    const response = buildResponderResponse(cap, found.job, {
+      concernKey,
+      jobKey: jobKeyZ32,
+      responseKey,
+      skipped: found.skipped
+    });
+    const posture = response.posture || null;
+
+    await publishJobWork(
+      concern,
+      jobKey,
+      cap,
+      { t: "response", k: jobKey, a: attempt },
+      {
+        responderId,
+        handledBy: responderId,
+        concernKey,
+        jobKey: jobKeyZ32,
+        cap,
+        responseKey,
+        response,
+        posture,
+        issuedAtMs: Date.now()
+      }
+    );
+    await concern.update({ wait: true }).catch(() => {});
+
+    const statusAfter = await collectConcernStatus(concern, swarm);
+    console.log(JSON.stringify({
+      ok: true,
+      action: "responder-run",
+      state: "handled",
+      concernKey,
+      jobKey: jobKeyZ32,
+      cap,
+      responseKey,
+      receiptKey: responseKey,
+      responderId,
+      handled: 1,
+      skipped: found.skipped,
+      ...(cap === SELECTOR_INTENT_CAP ? {
+        actorGroup: response.actorGroup,
+        selectorKind: response.selectorKind,
+        expectedResultMode: response.expectedResultMode,
+        responseMode: response.responseMode,
+        responses: response.responses,
+        handledBy: response.handledBy,
+        posture
+      } : {}),
+      response,
+      statusBefore,
+      statusAfter
+    }, null, 2));
+
+    await concern.close().catch(() => {});
+  });
+}
+
 async function cmdStatus({ flags, config }) {
   const concernKey = flags.concern;
   if (!concernKey) throw new Error("--concern is required");
@@ -462,22 +947,7 @@ async function cmdStatus({ flags, config }) {
 
     await waitForSync(concern, config.timeoutMs);
 
-    const jobs = await countView(getJobView(concern));
-    const pubs = await countView(getPublishView(concern));
-    const rats = await countView(getRatView(concern));
-
-    console.log(JSON.stringify({
-      ok: true,
-      action: "status",
-      concern: concernKey,
-      writable: !!concern.writable,
-      swarmConnections: swarm.connections?.size ?? 0,
-      counts: {
-        jobs,
-        publish: pubs,
-        ratify: rats
-      }
-    }, null, 2));
+    console.log(JSON.stringify(await collectConcernStatus(concern, swarm), null, 2));
 
     await concern.close().catch(() => {});
   });
@@ -492,6 +962,11 @@ async function main() {
   const configPath = flags.config || process.env.MESH_OPERATOR_CONFIG || DEFAULT_CONFIG_PATH;
   const fileConfig = await loadJsonIfPresent(configPath);
   const config = normalizeConfig({ fileConfig, env: process.env });
+
+  if (command === "concern setup") {
+    await cmdConcernSetup({ flags, config });
+    return;
+  }
 
   if (command === "discovery advertise-concern") {
     await cmdAdvertiseConcern({ flags, config });
@@ -510,6 +985,11 @@ async function main() {
 
   if (command === "job submit") {
     await cmdJobSubmit({ flags, config });
+    return;
+  }
+
+  if (command === "responder run") {
+    await cmdResponderRun({ flags, config });
     return;
   }
 
