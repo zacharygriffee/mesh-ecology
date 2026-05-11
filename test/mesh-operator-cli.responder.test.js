@@ -7,6 +7,7 @@ import { mkTemp } from "./_helpers/fs.js";
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 const CLI = path.join(ROOT, "packages", "mesh-operator-cli", "bin", "mesh.js");
+const CALL_FOR_RESPONSES_CAP = "cap/concern/call-for-responses/v1";
 const HELLO_CAP = "cap/edge/control-panel/hello-status";
 const SELECTOR_CAP = "cap/edge/control-panel/selector-intent";
 const YARD_LIGHTS_CAP = "cap/edge/control-panel/yard-lights/set-state";
@@ -189,6 +190,132 @@ test("mesh selector-intent responder skips already-handled selector jobs", (t) =
   }
 });
 
+test("mesh call-for-responses responder emits generic plural response evidence", (t) => {
+  const tmp = mkTemp("mesh-responder-call-for-responses-");
+  try {
+    const setup = runSetup(tmp.dir, "call-for-responses");
+    const jobPath = writeJob(tmp.dir, "call.json", CALL_FOR_RESPONSES_CAP, callForResponsesInput());
+    const submit = runCli(["job", "submit", "--concern", setup.concernKey, "--json", jobPath, "--no-wait", "--config", setup.configPath]);
+    t.is(submit.status, 0, `submit failed: ${submit.stderr || submit.stdout}`);
+    const submitJson = parseTrailingJson(submit.stdout);
+    t.is(submitJson.cap, CALL_FOR_RESPONSES_CAP);
+
+    const res = runResponder(setup, CALL_FOR_RESPONSES_CAP);
+    t.is(res.status, 0, `call-for-responses responder failed: ${res.stderr || res.stdout}`);
+    const out = JSON.parse(res.stdout);
+    t.is(out.state, "handled");
+    t.is(out.cap, CALL_FOR_RESPONSES_CAP);
+    t.is(out.jobKey, submitJson.jobKey);
+    t.is(out.requestKind, "mesh_concern_call_for_responses");
+    t.is(out.profile, "edge_local_layer_need_call");
+    t.is(out.needRef, "edge-local-need:1");
+    t.is(out.producer.repo, "edge");
+    t.is(out.producer.surface, "local-layer");
+    t.is(out.responseMode, "plural_response_evidence");
+    t.ok(Array.isArray(out.responses), "plural responses are present");
+    t.is(out.responses.length, 1);
+    t.is(out.responses[0].responderRef, RESPONDER_ID);
+    t.is(out.responses[0].eligibility, "eligible");
+    assertGenericCallNonClaims(t, out.response);
+    t.is(out.response.ok, true);
+    t.is(out.response.globalCapabilityRegistryClaimed, false);
+    t.is(out.response.discoverySearchClaimed, false);
+    t.is(out.response.schedulingClaimed, false);
+    t.is(out.response.shellCommandExecuted, false);
+    t.is(out.response.deviceMutationAttempted, false);
+
+    const status = runCli(["status", "--concern", setup.concernKey, "--config", setup.configPath]);
+    t.is(status.status, 0, `status failed: ${status.stderr || status.stdout}`);
+    const statusJson = JSON.parse(status.stdout);
+    const latest = statusJson.responders[RESPONDER_ID].latestByCap[CALL_FOR_RESPONSES_CAP];
+    t.is(statusJson.responders[RESPONDER_ID].byCap[CALL_FOR_RESPONSES_CAP], 1);
+    t.is(statusJson.responders[RESPONDER_ID].byCapCounts[CALL_FOR_RESPONSES_CAP].handled, 1);
+    t.is(latest.cap, CALL_FOR_RESPONSES_CAP);
+    t.is(latest.profile, "edge_local_layer_need_call");
+    t.is(latest.needRef, "edge-local-need:1");
+    t.is(latest.responseMode, "plural_response_evidence");
+    t.is(latest.responsesReturned, 1);
+    t.ok(latest.posture.nonClaims.includes("does not provide a global capability registry"));
+  } finally {
+    tmp.cleanup();
+  }
+});
+
+test("mesh call-for-responses responder emits rejected evidence for invalid or registry-like payloads", (t) => {
+  const tmp = mkTemp("mesh-responder-call-for-responses-invalid-");
+  try {
+    const setup = runSetup(tmp.dir, "call-for-responses-invalid");
+    const invalid = writeJob(tmp.dir, "call-invalid.json", CALL_FOR_RESPONSES_CAP, callForResponsesInput({
+      needRef: undefined,
+      subject: {
+        kind: "capability_registry",
+        summary: "global capability registry with completion proof",
+        constraints: { scheduler: "select actor winner" }
+      },
+      nonClaimsRequired: ["no_actor_selection"]
+    }));
+    t.is(runCli(["job", "submit", "--concern", setup.concernKey, "--json", invalid, "--no-wait", "--config", setup.configPath]).status, 0);
+
+    const res = runResponder(setup, CALL_FOR_RESPONSES_CAP);
+    t.is(res.status, 0, `invalid call-for-responses responder failed: ${res.stderr || res.stdout}`);
+    const out = JSON.parse(res.stdout);
+    t.is(out.state, "handled");
+    t.is(out.response.ok, false);
+    t.is(out.response.responseMode, "plural_response_evidence");
+    t.ok(out.response.reasonCodes.includes("missing_need_ref"));
+    t.ok(out.response.reasonCodes.includes("missing_required_non_claims"));
+    t.ok(out.response.reasonCodes.includes("forbidden_claim"));
+    assertGenericCallNonClaims(t, out.response);
+    t.is(out.response.completionClaimed, false);
+    t.is(out.response.meshTruthClaimed, false);
+    t.is(out.response.globalCapabilityRegistryClaimed, false);
+
+    const status = runCli(["status", "--concern", setup.concernKey, "--config", setup.configPath]);
+    t.is(status.status, 0, `status failed: ${status.stderr || status.stdout}`);
+    const latest = JSON.parse(status.stdout).responders[RESPONDER_ID].latestByCap[CALL_FOR_RESPONSES_CAP];
+    t.ok(Array.isArray(latest.reasonCodes));
+    t.ok(latest.reasonCodes.includes("forbidden_claim"));
+  } finally {
+    tmp.cleanup();
+  }
+});
+
+test("mesh call-for-responses responder skips already-handled generic jobs", (t) => {
+  const tmp = mkTemp("mesh-responder-call-for-responses-once-");
+  try {
+    const setup = runSetup(tmp.dir, "call-for-responses-once");
+    const firstJob = writeJob(tmp.dir, "call-1.json", CALL_FOR_RESPONSES_CAP, callForResponsesInput({ needRef: "edge-local-need:1" }));
+    const secondJob = writeJob(tmp.dir, "call-2.json", CALL_FOR_RESPONSES_CAP, callForResponsesInput({ needRef: "edge-local-need:2" }));
+    t.is(runCli(["job", "submit", "--concern", setup.concernKey, "--json", firstJob, "--no-wait", "--config", setup.configPath]).status, 0);
+    t.is(runCli(["job", "submit", "--concern", setup.concernKey, "--json", secondJob, "--no-wait", "--config", setup.configPath]).status, 0);
+
+    const first = runResponder(setup, CALL_FOR_RESPONSES_CAP);
+    t.is(first.status, 0, `first call-for-responses responder failed: ${first.stderr || first.stdout}`);
+    const firstOut = JSON.parse(first.stdout);
+    t.is(firstOut.handled, 1);
+    t.is(firstOut.skipped, 0);
+
+    const second = runResponder(setup, CALL_FOR_RESPONSES_CAP);
+    t.is(second.status, 0, `second call-for-responses responder failed: ${second.stderr || second.stdout}`);
+    const secondOut = JSON.parse(second.stdout);
+    t.is(secondOut.handled, 1);
+    t.is(secondOut.skipped, 1);
+    t.ok(secondOut.jobKey !== firstOut.jobKey, "second run handles the next generic call job");
+  } finally {
+    tmp.cleanup();
+  }
+});
+
+test("mesh call-for-responses support does not change discovery, concern apply, or opcode surfaces", (t) => {
+  const discoverySource = fs.readFileSync(path.join(ROOT, "src", "discovery.js"), "utf8");
+  const applySource = fs.readFileSync(path.join(ROOT, "src", "concern", "apply.js"), "utf8");
+  const keySource = fs.readFileSync(path.join(ROOT, "src", "concern", "keys.js"), "utf8");
+
+  t.is(discoverySource.includes(CALL_FOR_RESPONSES_CAP), false, "discovery remains unaware of generic responder cap");
+  t.is(applySource.includes(CALL_FOR_RESPONSES_CAP), false, "concern apply remains cap-agnostic");
+  t.is(keySource.includes(CALL_FOR_RESPONSES_CAP), false, "no opcode/keyspace entry added for generic responder cap");
+});
+
 test("mesh yard-lights set-state cap accepts job submit and emits admitted evidence", (t) => {
   const tmp = mkTemp("mesh-responder-yard-lights-");
   try {
@@ -365,6 +492,37 @@ function selectorInput(overrides = {}) {
   };
 }
 
+function callForResponsesInput(overrides = {}) {
+  const input = {
+    requestKind: "mesh_concern_call_for_responses",
+    profile: "edge_local_layer_need_call",
+    needRef: "edge-local-need:1",
+    producer: {
+      repo: "edge",
+      surface: "local-layer"
+    },
+    responseMode: "plural_response_evidence",
+    subject: {
+      kind: "operator_need",
+      summary: "Find local responders for a bounded operator need.",
+      constraints: {}
+    },
+    nonClaimsRequired: [
+      "no_actor_selection",
+      "no_actor_obligation",
+      "no_completion_claim",
+      "no_device_truth",
+      "no_mesh_truth"
+    ],
+    operatorRef: "operator/local/1",
+    ...overrides
+  };
+  for (const [key, value] of Object.entries(input)) {
+    if (value === undefined) delete input[key];
+  }
+  return input;
+}
+
 function yardLightsInput(overrides = {}) {
   const input = {
     actorGroup: "yard_lights",
@@ -393,6 +551,29 @@ function assertYardLightsNonClaims(t, response) {
   t.ok(response.posture.nonClaims.includes("does not claim physical device truth"));
   t.ok(response.posture.nonClaims.includes("does not claim Edge authority"));
   t.ok(response.posture.nonClaims.includes("does not mutate devices"));
+  t.ok(response.posture.nonClaims.includes("does not execute shell commands"));
+}
+
+function assertGenericCallNonClaims(t, response) {
+  t.is(response.actorSelectionClaimed, false);
+  t.is(response.actorObligationClaimed, false);
+  t.is(response.completionClaimed, false);
+  t.is(response.physicalDeviceTruthClaimed, false);
+  t.is(response.meshTruthClaimed, false);
+  t.is(response.adjacentRepoTruthClaimed, false);
+  t.is(response.globalCapabilityRegistryClaimed, false);
+  t.is(response.discoverySearchClaimed, false);
+  t.is(response.schedulingClaimed, false);
+  t.is(response.deviceMutationAttempted, false);
+  t.is(response.networkSideEffectAttempted, false);
+  t.is(response.shellCommandExecuted, false);
+  t.ok(response.posture.nonClaims.includes("does not select actors"));
+  t.ok(response.posture.nonClaims.includes("does not assign actor obligation"));
+  t.ok(response.posture.nonClaims.includes("does not claim completion"));
+  t.ok(response.posture.nonClaims.includes("does not claim physical device truth"));
+  t.ok(response.posture.nonClaims.includes("does not claim Mesh truth"));
+  t.ok(response.posture.nonClaims.includes("does not provide a global capability registry"));
+  t.ok(response.posture.nonClaims.includes("does not schedule work"));
   t.ok(response.posture.nonClaims.includes("does not execute shell commands"));
 }
 

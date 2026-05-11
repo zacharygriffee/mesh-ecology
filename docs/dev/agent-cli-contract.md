@@ -29,9 +29,26 @@ This command is a bounded Mesh-owned responder loop. It opens the concern throug
 
 Supported caps:
 
+- `cap/concern/call-for-responses/v1`
 - `cap/edge/control-panel/hello-status`
 - `cap/edge/control-panel/selector-intent`
 - `cap/edge/control-panel/yard-lights/set-state`
+
+`call-for-responses` is a generic concern-local job/response convention. It is not Edge-specific, not a global capability registry, not discovery/search/scheduling, and not a protocol change. It reuses existing concern `JOB` plus `PUB` materialization: Edge or another adjacent repo may submit a bounded job into a chosen concern, and responders may publish plural response evidence. The response evidence does not select actors, assign obligation, claim completion, claim device truth, claim Mesh truth, or claim adjacent-repo truth.
+
+`call-for-responses` jobs must use:
+
+- `in.requestKind: "mesh_concern_call_for_responses"`
+- `in.profile`: non-empty producer profile, for example `"edge_local_layer_need_call"`
+- `in.needRef`: non-empty producer-local need reference
+- `in.producer.repo` and `in.producer.surface`
+- `in.responseMode: "plural_response_evidence"`
+- `in.subject.kind` and `in.subject.summary`
+- `in.subject.constraints`: optional bounded object
+- `in.nonClaimsRequired`: must include `no_actor_selection`, `no_actor_obligation`, `no_completion_claim`, `no_device_truth`, and `no_mesh_truth`
+- optional `in.operatorRef`
+
+Payloads are rejected as response evidence when they imply actor selection, actor obligation, completion, device truth, Mesh truth, adjacent-repo truth, shell execution, scheduling, global discovery, or a global capability registry.
 
 `selector-intent` jobs must use:
 
@@ -75,6 +92,45 @@ Successful hello-status output has this shape:
     "cap": "cap/edge/control-panel/hello-status",
     "message": "hello from mesh responder",
     "handledBy": "mesh-v0-2.generic-responder"
+  },
+  "statusBefore": {"counts": {"jobs": 1, "publish": 0, "ratify": 0}},
+  "statusAfter": {"counts": {"jobs": 1, "publish": 1, "ratify": 0}}
+}
+```
+
+Successful call-for-responses output keeps the same envelope and adds generic plural response evidence:
+
+```json
+{
+  "ok": true,
+  "action": "responder-run",
+  "state": "handled",
+  "concernKey": "<concern-z32>",
+  "jobKey": "<job-z32>",
+  "cap": "cap/concern/call-for-responses/v1",
+  "requestKind": "mesh_concern_call_for_responses",
+  "profile": "<producer-profile>",
+  "needRef": "<producer-need-ref>",
+  "producer": {
+    "repo": "<producer-repo>",
+    "surface": "<producer-surface>"
+  },
+  "responseMode": "plural_response_evidence",
+  "responses": [
+    {
+      "responderRef": "mesh-v0-2.generic-responder",
+      "observed": true,
+      "eligibility": "eligible"
+    }
+  ],
+  "posture": {
+    "nonClaims": [
+      "does not select actors",
+      "does not assign actor obligation",
+      "does not claim completion",
+      "does not claim physical device truth",
+      "does not claim Mesh truth"
+    ]
   },
   "statusBefore": {"counts": {"jobs": 1, "publish": 0, "ratify": 0}},
   "statusAfter": {"counts": {"jobs": 1, "publish": 1, "ratify": 0}}
@@ -189,12 +245,15 @@ Invalid yard-lights set-state payloads still produce Mesh-owned response evidenc
 
 Possible yard-lights rejection codes include `invalid_payload`, `unsupported_payload_field`, `invalid_actor_group`, `invalid_actor_selector`, `invalid_requested_state`, `missing_source_ratification_ref`, `missing_operator_ref`, and `missing_request_id`.
 
+Possible call-for-responses rejection codes include `invalid_payload`, `unsupported_payload_field`, `invalid_request_kind`, `missing_profile`, `missing_need_ref`, `invalid_producer`, `missing_producer_repo`, `missing_producer_surface`, `invalid_response_mode`, `invalid_subject`, `missing_subject_kind`, `missing_subject_summary`, `invalid_subject_constraints`, `missing_required_non_claims`, `invalid_operator_ref`, and `forbidden_claim`.
+
 When no matching pending job exists, the command prints JSON with `ok:false`, `state:"no_match"`, `handled:0`, `skipped:<n>`, `statusBefore`, and `statusAfter`, then exits nonzero. Automation should treat `state:"handled"` plus exit `0` as success, `state:"no_match"` as a blocked/no-work condition, and any invalid JSON or fatal stderr as failure.
 
 `status --concern` includes responder evidence under:
 
 - `counts.publish`
 - `responders["mesh-v0-2.generic-responder"].handled`
+- `responders["mesh-v0-2.generic-responder"].byCap["cap/concern/call-for-responses/v1"]`
 - `responders["mesh-v0-2.generic-responder"].byCap["cap/edge/control-panel/hello-status"]`
 - `responders["mesh-v0-2.generic-responder"].byCap["cap/edge/control-panel/selector-intent"]`
 - `responders["mesh-v0-2.generic-responder"].byCap["cap/edge/control-panel/yard-lights/set-state"]`
