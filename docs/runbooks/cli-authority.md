@@ -47,7 +47,7 @@ node packages/mesh-operator-cli/bin/mesh.js status --concern <returned-concern-k
 
 ## Mesh Generic Responder
 
-For bounded Edge control-panel responder caps, Mesh owns the responder behavior. Edge should submit a job and then invoke this Mesh command rather than writing a response itself:
+For bounded Mesh-owned responder caps, Mesh owns the responder behavior. Adjacent repos should submit a job and then invoke this Mesh command rather than writing a response themselves:
 
 ```bash
 node packages/mesh-operator-cli/bin/mesh.js responder run \
@@ -60,13 +60,15 @@ node packages/mesh-operator-cli/bin/mesh.js responder run \
 
 Authority limits:
 
-- supported caps are `cap/edge/control-panel/hello-status`, `cap/edge/control-panel/selector-intent`, and `cap/edge/control-panel/yard-lights/set-state`
+- supported Edge control-panel caps are `cap/edge/control-panel/hello-status`, `cap/edge/control-panel/selector-intent`, and `cap/edge/control-panel/yard-lights/set-state`
+- generic concern-local call-for-responses cap is `cap/concern/call-for-responses/v1`; it is not Edge-specific, not a global capability registry, and not discovery/search/scheduling
 - opens and observes the concern through Mesh concern/job views
 - emits one Mesh-owned response as concern PUB evidence
 - does not mutate Edge files or assume Edge store paths
 - does not add scheduler/daemon behavior; `--once` exits after one handle or no-match
 - does not publish outside existing concern API/replication behavior
 - selector-intent jobs invite plural responses; they do not select actors or assign actor obligation
+- call-for-responses jobs invite plural response evidence inside one chosen concern; they do not select actors, assign obligation, claim completion, claim device truth, claim Mesh truth, or claim adjacent-repo truth
 - yard-lights set-state jobs record admitted/rejected request evidence only; they do not claim physical device truth, job completion, project completion, Edge authority, or Mesh truth
 
 Hello-status:

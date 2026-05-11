@@ -34,14 +34,37 @@ const DEFAULT_CORESTORE_DIR = "./store/operator-cli";
 const DEFAULT_TOPIC_Z32 = idEncoding.encode(defaultTopics(1)[0]);
 const DEFAULT_TIMEOUT_MS = 15_000;
 const GENERIC_RESPONDER_ID = "mesh-v0-2.generic-responder";
+const CALL_FOR_RESPONSES_CAP = "cap/concern/call-for-responses/v1";
 const HELLO_STATUS_CAP = "cap/edge/control-panel/hello-status";
 const SELECTOR_INTENT_CAP = "cap/edge/control-panel/selector-intent";
 const YARD_LIGHTS_SET_STATE_CAP = "cap/edge/control-panel/yard-lights/set-state";
 const SUPPORTED_RESPONDER_CAPS = new Set([
+  CALL_FOR_RESPONSES_CAP,
   HELLO_STATUS_CAP,
   SELECTOR_INTENT_CAP,
   YARD_LIGHTS_SET_STATE_CAP
 ]);
+const CALL_FOR_RESPONSES_REQUEST_KIND = "mesh_concern_call_for_responses";
+const CALL_FOR_RESPONSES_RESPONSE_MODE = "plural_response_evidence";
+const CALL_FOR_RESPONSES_REQUIRED_NON_CLAIMS = new Set([
+  "no_actor_selection",
+  "no_actor_obligation",
+  "no_completion_claim",
+  "no_device_truth",
+  "no_mesh_truth"
+]);
+const CALL_FOR_RESPONSES_ALLOWED_INPUT_KEYS = new Set([
+  "requestKind",
+  "profile",
+  "needRef",
+  "producer",
+  "responseMode",
+  "subject",
+  "nonClaimsRequired",
+  "operatorRef"
+]);
+const CALL_FOR_RESPONSES_ALLOWED_PRODUCER_KEYS = new Set(["repo", "surface"]);
+const CALL_FOR_RESPONSES_ALLOWED_SUBJECT_KEYS = new Set(["kind", "summary", "constraints"]);
 const YARD_LIGHTS_ACTOR_GROUP = "yard_lights";
 const YARD_LIGHTS_SELECTOR_KINDS = new Set(["explicit_actor_ids", "all_in_actor_group"]);
 const YARD_LIGHTS_REQUESTED_STATES = new Set(["on", "off"]);
@@ -314,6 +337,11 @@ async function collectResponderEvidence(publishView) {
       concernKey: meta.concernKey || null,
       jobKey: pub.ref?.k ? idEncoding.encode(pub.ref.k) : meta.jobKey || null,
       cap,
+      requestKind: meta.response?.requestKind || null,
+      profile: meta.response?.profile || null,
+      needRef: meta.response?.needRef || null,
+      producer: meta.response?.producer || null,
+      subject: meta.response?.subject || null,
       responseKey: pub.ref?.a ? idEncoding.encode(pub.ref.a) : meta.responseKey || null,
       responderId,
       handledBy: meta.handledBy || responderId,
@@ -505,6 +533,7 @@ async function cmdConcernSetup({ flags, config }) {
           status: `CORESTORE_DIR=${shellQuote(storeDir)} node packages/mesh-operator-cli/bin/mesh.js status --concern ${concernKey}`,
           submitJobWithConfig: `node packages/mesh-operator-cli/bin/mesh.js job submit --concern ${concernKey} --json <job.json> --no-wait --config ${shellQuote(configPath)}`,
           statusWithConfig: `node packages/mesh-operator-cli/bin/mesh.js status --concern ${concernKey} --config ${shellQuote(configPath)}`,
+          callForResponsesResponderRunOnceWithConfig: `node packages/mesh-operator-cli/bin/mesh.js responder run --concern ${concernKey} --config ${shellQuote(configPath)} --cap ${CALL_FOR_RESPONSES_CAP} --once --json`,
           responderRunOnceWithConfig: `node packages/mesh-operator-cli/bin/mesh.js responder run --concern ${concernKey} --config ${shellQuote(configPath)} --cap ${HELLO_STATUS_CAP} --once --json`,
           selectorResponderRunOnceWithConfig: `node packages/mesh-operator-cli/bin/mesh.js responder run --concern ${concernKey} --config ${shellQuote(configPath)} --cap ${SELECTOR_INTENT_CAP} --once --json`,
           yardLightsSetStateResponderRunOnceWithConfig: `node packages/mesh-operator-cli/bin/mesh.js responder run --concern ${concernKey} --config ${shellQuote(configPath)} --cap ${YARD_LIGHTS_SET_STATE_CAP} --once --json`
@@ -744,6 +773,200 @@ function helloStatusResponse() {
   };
 }
 
+function callForResponsesPosture() {
+  return {
+    summary: "generic concern-local call-for-responses evidence",
+    nonClaims: [
+      "does not select actors",
+      "does not assign actor obligation",
+      "does not claim completion",
+      "does not claim physical device truth",
+      "does not claim Mesh truth",
+      "does not claim adjacent repo truth",
+      "does not provide a global capability registry",
+      "does not schedule work",
+      "does not search discovery",
+      "does not mutate devices",
+      "does not execute shell commands"
+    ]
+  };
+}
+
+function callForResponsesNonClaims() {
+  return {
+    actorSelectionClaimed: false,
+    actorObligationClaimed: false,
+    completionClaimed: false,
+    physicalDeviceTruthClaimed: false,
+    meshTruthClaimed: false,
+    adjacentRepoTruthClaimed: false,
+    globalCapabilityRegistryClaimed: false,
+    discoverySearchClaimed: false,
+    schedulingClaimed: false,
+    deviceMutationAttempted: false,
+    networkSideEffectAttempted: false,
+    shellCommandExecuted: false
+  };
+}
+
+function hasOnlyAllowedKeys(value, allowed) {
+  return Object.keys(value || {}).every((key) => allowed.has(key));
+}
+
+function hasForbiddenCallForResponsesWording(input) {
+  const fragments = [
+    input?.subject?.kind,
+    input?.subject?.summary,
+    JSON.stringify(input?.subject?.constraints || {})
+  ].filter((value) => typeof value === "string").join(" ").toLowerCase();
+
+  return [
+    "global registry",
+    "capability registry",
+    "global capability",
+    "global search",
+    "discovery search",
+    "search discovery",
+    "discovery scheduling",
+    "schedule work",
+    "scheduler",
+    "select actor",
+    "actor selection",
+    "assign actor",
+    "actor obligation",
+    "winner",
+    "completion proof",
+    "job completion",
+    "device truth",
+    "mesh truth",
+    "adjacent repo truth",
+    "shell execution",
+    "execute shell",
+    "device mutation",
+    "mutate device"
+  ].some((needle) => fragments.includes(needle));
+}
+
+function validateCallForResponsesInput(input) {
+  const reasonCodes = [];
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    return { ok: false, reasonCodes: ["invalid_payload"] };
+  }
+
+  if (!hasOnlyAllowedKeys(input, CALL_FOR_RESPONSES_ALLOWED_INPUT_KEYS)) {
+    reasonCodes.push("unsupported_payload_field");
+  }
+  if (input.requestKind !== CALL_FOR_RESPONSES_REQUEST_KIND) reasonCodes.push("invalid_request_kind");
+  if (!isNonEmptyString(input.profile)) reasonCodes.push("missing_profile");
+  if (!isNonEmptyString(input.needRef)) reasonCodes.push("missing_need_ref");
+  if (!input.producer || typeof input.producer !== "object" || Array.isArray(input.producer)) {
+    reasonCodes.push("invalid_producer");
+  } else {
+    if (!hasOnlyAllowedKeys(input.producer, CALL_FOR_RESPONSES_ALLOWED_PRODUCER_KEYS)) {
+      reasonCodes.push("unsupported_payload_field");
+    }
+    if (!isNonEmptyString(input.producer.repo)) reasonCodes.push("missing_producer_repo");
+    if (!isNonEmptyString(input.producer.surface)) reasonCodes.push("missing_producer_surface");
+  }
+  if (input.responseMode !== CALL_FOR_RESPONSES_RESPONSE_MODE) reasonCodes.push("invalid_response_mode");
+  if (!input.subject || typeof input.subject !== "object" || Array.isArray(input.subject)) {
+    reasonCodes.push("invalid_subject");
+  } else {
+    if (!hasOnlyAllowedKeys(input.subject, CALL_FOR_RESPONSES_ALLOWED_SUBJECT_KEYS)) {
+      reasonCodes.push("unsupported_payload_field");
+    }
+    if (!isNonEmptyString(input.subject.kind)) reasonCodes.push("missing_subject_kind");
+    if (!isNonEmptyString(input.subject.summary)) reasonCodes.push("missing_subject_summary");
+    if (
+      Object.prototype.hasOwnProperty.call(input.subject, "constraints") &&
+      (!input.subject.constraints || typeof input.subject.constraints !== "object" || Array.isArray(input.subject.constraints))
+    ) {
+      reasonCodes.push("invalid_subject_constraints");
+    }
+  }
+  if (!Array.isArray(input.nonClaimsRequired)) {
+    reasonCodes.push("missing_required_non_claims");
+  } else {
+    for (const required of CALL_FOR_RESPONSES_REQUIRED_NON_CLAIMS) {
+      if (!input.nonClaimsRequired.includes(required)) reasonCodes.push("missing_required_non_claims");
+    }
+  }
+  if (
+    Object.prototype.hasOwnProperty.call(input, "operatorRef") &&
+    input.operatorRef != null &&
+    !isNonEmptyString(input.operatorRef)
+  ) {
+    reasonCodes.push("invalid_operator_ref");
+  }
+  if (hasForbiddenCallForResponsesWording(input)) reasonCodes.push("forbidden_claim");
+
+  return {
+    ok: reasonCodes.length === 0,
+    reasonCodes: [...new Set(reasonCodes)]
+  };
+}
+
+function callForResponsesResponse(input, context) {
+  const validation = validateCallForResponsesInput(input);
+  const common = {
+    cap: CALL_FOR_RESPONSES_CAP,
+    requestKind: input?.requestKind === CALL_FOR_RESPONSES_REQUEST_KIND
+      ? input.requestKind
+      : CALL_FOR_RESPONSES_REQUEST_KIND,
+    profile: isNonEmptyString(input?.profile) ? input.profile : null,
+    needRef: isNonEmptyString(input?.needRef) ? input.needRef : null,
+    producer: input?.producer && typeof input.producer === "object" && !Array.isArray(input.producer)
+      ? {
+          repo: isNonEmptyString(input.producer.repo) ? input.producer.repo : null,
+          surface: isNonEmptyString(input.producer.surface) ? input.producer.surface : null
+        }
+      : null,
+    responseMode: CALL_FOR_RESPONSES_RESPONSE_MODE,
+    handledBy: GENERIC_RESPONDER_ID,
+    responderId: GENERIC_RESPONDER_ID,
+    concernKey: context.concernKey,
+    jobKey: context.jobKey,
+    responseKey: context.responseKey,
+    receiptKey: context.responseKey,
+    handled: 1,
+    skipped: context.skipped,
+    posture: callForResponsesPosture(),
+    ...callForResponsesNonClaims()
+  };
+
+  if (!validation.ok) {
+    return {
+      ok: false,
+      ...common,
+      reasonCodes: validation.reasonCodes
+    };
+  }
+
+  return {
+    ok: true,
+    ...common,
+    producer: {
+      repo: input.producer.repo,
+      surface: input.producer.surface
+    },
+    subject: {
+      kind: input.subject.kind,
+      summary: input.subject.summary,
+      constraints: input.subject.constraints && typeof input.subject.constraints === "object"
+        ? input.subject.constraints
+        : {}
+    },
+    operatorRef: isNonEmptyString(input.operatorRef) ? input.operatorRef : null,
+    responses: [
+      {
+        responderRef: GENERIC_RESPONDER_ID,
+        observed: true,
+        eligibility: "eligible"
+      }
+    ]
+  };
+}
+
 function selectorIntentPosture() {
   return {
     summary: "bounded selector-intent response evidence",
@@ -806,6 +1029,7 @@ function validateYardLightsSetStateInput(input) {
 
 function isResponderJobMatch(job, cap) {
   if (job?.cap !== cap) return false;
+  if (cap === CALL_FOR_RESPONSES_CAP) return true;
   if (cap === HELLO_STATUS_CAP) return true;
   if (cap === SELECTOR_INTENT_CAP) return validateSelectorIntentInput(job.in);
   if (cap === YARD_LIGHTS_SET_STATE_CAP) return true;
@@ -916,6 +1140,7 @@ function yardLightsSetStateResponse(input, context) {
 }
 
 function buildResponderResponse(cap, job, context) {
+  if (cap === CALL_FOR_RESPONSES_CAP) return callForResponsesResponse(job.in, context);
   if (cap === HELLO_STATUS_CAP) return helloStatusResponse();
   if (cap === SELECTOR_INTENT_CAP) return selectorIntentResponse(job.in, context);
   if (cap === YARD_LIGHTS_SET_STATE_CAP) return yardLightsSetStateResponse(job.in, context);
@@ -1054,6 +1279,19 @@ async function cmdResponderRun({ flags, config }) {
       responderId,
       handled: 1,
       skipped: found.skipped,
+      ...(cap === CALL_FOR_RESPONSES_CAP ? {
+        requestKind: response.requestKind,
+        profile: response.profile,
+        needRef: response.needRef,
+        producer: response.producer,
+        subject: response.subject || null,
+        operatorRef: response.operatorRef || null,
+        responseMode: response.responseMode,
+        responses: response.responses || [],
+        reasonCodes: response.reasonCodes || null,
+        handledBy: response.handledBy,
+        posture
+      } : {}),
       ...(cap === SELECTOR_INTENT_CAP ? {
         actorGroup: response.actorGroup,
         selectorKind: response.selectorKind,
