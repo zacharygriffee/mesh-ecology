@@ -8,6 +8,7 @@
   "scripts": {
     "docs:check": "node scripts/docs-check.mjs",
     "test": "node test/run-files.js",
+    "caps:check": "node scripts/check-generic-caps.js",
     "commit:check-scope": "node scripts/check-commit-scope.js",
     "bundle": "node scripts/release-bundle.js",
     "deploy:remote": "bash deploy/remote-deploy.sh"
