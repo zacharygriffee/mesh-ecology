@@ -5,7 +5,7 @@ import path from "path";
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..", "..");
 const SCRIPT = path.join(ROOT, "scripts", "check-generic-caps.js");
 
-test("generic cap guard allows existing legacy edge caps but blocks new repo-specific caps", (t) => {
+test("generic cap guard blocks repo-specific caps", (t) => {
   const ok = spawnSync(process.execPath, [SCRIPT], {
     cwd: ROOT,
     encoding: "utf8"

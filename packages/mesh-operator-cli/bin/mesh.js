@@ -35,14 +35,8 @@ const DEFAULT_TOPIC_Z32 = idEncoding.encode(defaultTopics(1)[0]);
 const DEFAULT_TIMEOUT_MS = 15_000;
 const GENERIC_RESPONDER_ID = "mesh-v0-2.generic-responder";
 const CALL_FOR_RESPONSES_CAP = "cap/concern/call-for-responses/v1";
-const HELLO_STATUS_CAP = "cap/edge/control-panel/hello-status";
-const SELECTOR_INTENT_CAP = "cap/edge/control-panel/selector-intent";
-const YARD_LIGHTS_SET_STATE_CAP = "cap/edge/control-panel/yard-lights/set-state";
 const SUPPORTED_RESPONDER_CAPS = new Set([
-  CALL_FOR_RESPONSES_CAP,
-  HELLO_STATUS_CAP,
-  SELECTOR_INTENT_CAP,
-  YARD_LIGHTS_SET_STATE_CAP
+  CALL_FOR_RESPONSES_CAP
 ]);
 const CALL_FOR_RESPONSES_REQUEST_KIND = "mesh_concern_call_for_responses";
 const CALL_FOR_RESPONSES_RESPONSE_MODE = "plural_response_evidence";
@@ -65,18 +59,6 @@ const CALL_FOR_RESPONSES_ALLOWED_INPUT_KEYS = new Set([
 ]);
 const CALL_FOR_RESPONSES_ALLOWED_PRODUCER_KEYS = new Set(["repo", "surface"]);
 const CALL_FOR_RESPONSES_ALLOWED_SUBJECT_KEYS = new Set(["kind", "summary", "constraints"]);
-const YARD_LIGHTS_ACTOR_GROUP = "yard_lights";
-const YARD_LIGHTS_SELECTOR_KINDS = new Set(["explicit_actor_ids", "all_in_actor_group"]);
-const YARD_LIGHTS_REQUESTED_STATES = new Set(["on", "off"]);
-const YARD_LIGHTS_ALLOWED_INPUT_KEYS = new Set([
-  "actorGroup",
-  "selectorKind",
-  "actorIds",
-  "requestedState",
-  "sourceRatificationRef",
-  "operatorRef",
-  "requestId"
-]);
 
 function printHelp() {
   writeSync(process.stdout.fd, [
@@ -533,10 +515,7 @@ async function cmdConcernSetup({ flags, config }) {
           status: `CORESTORE_DIR=${shellQuote(storeDir)} node packages/mesh-operator-cli/bin/mesh.js status --concern ${concernKey}`,
           submitJobWithConfig: `node packages/mesh-operator-cli/bin/mesh.js job submit --concern ${concernKey} --json <job.json> --no-wait --config ${shellQuote(configPath)}`,
           statusWithConfig: `node packages/mesh-operator-cli/bin/mesh.js status --concern ${concernKey} --config ${shellQuote(configPath)}`,
-          callForResponsesResponderRunOnceWithConfig: `node packages/mesh-operator-cli/bin/mesh.js responder run --concern ${concernKey} --config ${shellQuote(configPath)} --cap ${CALL_FOR_RESPONSES_CAP} --once --json`,
-          responderRunOnceWithConfig: `node packages/mesh-operator-cli/bin/mesh.js responder run --concern ${concernKey} --config ${shellQuote(configPath)} --cap ${HELLO_STATUS_CAP} --once --json`,
-          selectorResponderRunOnceWithConfig: `node packages/mesh-operator-cli/bin/mesh.js responder run --concern ${concernKey} --config ${shellQuote(configPath)} --cap ${SELECTOR_INTENT_CAP} --once --json`,
-          yardLightsSetStateResponderRunOnceWithConfig: `node packages/mesh-operator-cli/bin/mesh.js responder run --concern ${concernKey} --config ${shellQuote(configPath)} --cap ${YARD_LIGHTS_SET_STATE_CAP} --once --json`
+          callForResponsesResponderRunOnceWithConfig: `node packages/mesh-operator-cli/bin/mesh.js responder run --concern ${concernKey} --config ${shellQuote(configPath)} --cap ${CALL_FOR_RESPONSES_CAP} --once --json`
         }
       };
     } finally {
@@ -764,15 +743,6 @@ async function cmdJobSubmit({ flags, config }) {
   });
 }
 
-function helloStatusResponse() {
-  return {
-    ok: true,
-    cap: HELLO_STATUS_CAP,
-    message: "hello from mesh responder",
-    handledBy: GENERIC_RESPONDER_ID
-  };
-}
-
 function callForResponsesPosture() {
   return {
     summary: "generic concern-local call-for-responses evidence",
@@ -967,183 +937,18 @@ function callForResponsesResponse(input, context) {
   };
 }
 
-function selectorIntentPosture() {
-  return {
-    summary: "bounded selector-intent response evidence",
-    nonClaims: [
-      "does not select actors",
-      "does not assign actor obligation",
-      "does not claim canonical selection",
-      "does not claim completion",
-      "does not claim production proof",
-      "does not require Edge to enumerate actors"
-    ]
-  };
-}
-
-function validateSelectorIntentInput(input) {
-  if (!input || typeof input !== "object" || Array.isArray(input)) return false;
-  if (input.requestKind !== "mesh_concern_selector_intent") return false;
-  if (typeof input.actorGroup !== "string" || !input.actorGroup.trim()) return false;
-  if (typeof input.selectorKind !== "string" || !input.selectorKind.trim()) return false;
-  if (input.expectedResultMode !== "plural_responses") return false;
-  return true;
-}
-
 function isNonEmptyString(value) {
   return typeof value === "string" && value.trim().length > 0;
-}
-
-function validateYardLightsSetStateInput(input) {
-  const reasonCodes = [];
-  if (!input || typeof input !== "object" || Array.isArray(input)) {
-    return { ok: false, reasonCodes: ["invalid_payload"] };
-  }
-
-  for (const key of Object.keys(input)) {
-    if (!YARD_LIGHTS_ALLOWED_INPUT_KEYS.has(key)) {
-      reasonCodes.push("unsupported_payload_field");
-      break;
-    }
-  }
-
-  if (input.actorGroup !== YARD_LIGHTS_ACTOR_GROUP) reasonCodes.push("invalid_actor_group");
-  if (!YARD_LIGHTS_SELECTOR_KINDS.has(input.selectorKind)) reasonCodes.push("invalid_actor_selector");
-  if (input.selectorKind === "explicit_actor_ids") {
-    if (!Array.isArray(input.actorIds) || input.actorIds.length < 1) {
-      reasonCodes.push("invalid_actor_selector");
-    } else if (!input.actorIds.every((actorId) => isNonEmptyString(actorId) && actorId.length <= 128)) {
-      reasonCodes.push("invalid_actor_selector");
-    }
-  }
-  if (!YARD_LIGHTS_REQUESTED_STATES.has(input.requestedState)) reasonCodes.push("invalid_requested_state");
-  if (!isNonEmptyString(input.sourceRatificationRef)) reasonCodes.push("missing_source_ratification_ref");
-  if (!isNonEmptyString(input.operatorRef)) reasonCodes.push("missing_operator_ref");
-  if (!isNonEmptyString(input.requestId)) reasonCodes.push("missing_request_id");
-
-  return {
-    ok: reasonCodes.length === 0,
-    reasonCodes: [...new Set(reasonCodes)]
-  };
 }
 
 function isResponderJobMatch(job, cap) {
   if (job?.cap !== cap) return false;
   if (cap === CALL_FOR_RESPONSES_CAP) return true;
-  if (cap === HELLO_STATUS_CAP) return true;
-  if (cap === SELECTOR_INTENT_CAP) return validateSelectorIntentInput(job.in);
-  if (cap === YARD_LIGHTS_SET_STATE_CAP) return true;
   return false;
-}
-
-function selectorIntentResponse(input, context) {
-  const posture = selectorIntentPosture();
-  return {
-    ok: true,
-    cap: SELECTOR_INTENT_CAP,
-    actorGroup: input.actorGroup,
-    selectorKind: input.selectorKind,
-    desiredState: Object.prototype.hasOwnProperty.call(input, "desiredState") ? input.desiredState : null,
-    expectedResultMode: "plural_responses",
-    responseMode: "plural_selector_response",
-    responses: [
-      {
-        actorId: "yard-light-alpha",
-        actorGroup: input.actorGroup,
-        observed: true,
-        eligibility: "eligible"
-      },
-      {
-        actorId: "yard-light-beta",
-        actorGroup: input.actorGroup,
-        observed: true,
-        eligibility: "eligible"
-      }
-    ],
-    handledBy: GENERIC_RESPONDER_ID,
-    responderId: GENERIC_RESPONDER_ID,
-    concernKey: context.concernKey,
-    jobKey: context.jobKey,
-    responseKey: context.responseKey,
-    receiptKey: context.responseKey,
-    handled: 1,
-    skipped: context.skipped,
-    posture
-  };
-}
-
-function yardLightsNonClaims() {
-  return {
-    physicalDeviceTruthClaimed: false,
-    jobCompletionClaimed: false,
-    projectCompletionClaimed: false,
-    edgeAuthorityClaimed: false,
-    meshTruthClaimed: false,
-    deviceMutationAttempted: false,
-    networkSideEffectAttempted: false,
-    shellCommandExecuted: false
-  };
-}
-
-function yardLightsSetStatePosture() {
-  return {
-    summary: "bounded ratified yard-lights set-state request evidence",
-    nonClaims: [
-      "does not claim physical device truth",
-      "does not claim job completion",
-      "does not claim project completion",
-      "does not claim Edge authority",
-      "does not claim Mesh truth",
-      "does not mutate devices",
-      "does not execute shell commands"
-    ]
-  };
-}
-
-function yardLightsSetStateResponse(input, context) {
-  const validation = validateYardLightsSetStateInput(input);
-  const common = {
-    cap: YARD_LIGHTS_SET_STATE_CAP,
-    requestId: isNonEmptyString(input?.requestId) ? input.requestId : null,
-    admissionState: validation.ok ? "admitted" : "rejected",
-    responseMode: "ratified_control_request_evidence",
-    handledBy: GENERIC_RESPONDER_ID,
-    responderId: GENERIC_RESPONDER_ID,
-    concernKey: context.concernKey,
-    jobKey: context.jobKey,
-    responseKey: context.responseKey,
-    receiptKey: context.responseKey,
-    handled: 1,
-    skipped: context.skipped,
-    posture: yardLightsSetStatePosture(),
-    ...yardLightsNonClaims()
-  };
-
-  if (!validation.ok) {
-    return {
-      ok: false,
-      ...common,
-      reasonCodes: validation.reasonCodes
-    };
-  }
-
-  return {
-    ok: true,
-    ...common,
-    actorGroup: YARD_LIGHTS_ACTOR_GROUP,
-    selectorKind: input.selectorKind,
-    ...(input.selectorKind === "explicit_actor_ids" ? { actorIds: input.actorIds } : {}),
-    requestedState: input.requestedState,
-    sourceRatificationRef: input.sourceRatificationRef,
-    operatorRef: input.operatorRef
-  };
 }
 
 function buildResponderResponse(cap, job, context) {
   if (cap === CALL_FOR_RESPONSES_CAP) return callForResponsesResponse(job.in, context);
-  if (cap === HELLO_STATUS_CAP) return helloStatusResponse();
-  if (cap === SELECTOR_INTENT_CAP) return selectorIntentResponse(job.in, context);
-  if (cap === YARD_LIGHTS_SET_STATE_CAP) return yardLightsSetStateResponse(job.in, context);
   throw new Error(`unsupported responder cap: ${cap}`);
 }
 
@@ -1288,28 +1093,6 @@ async function cmdResponderRun({ flags, config }) {
         operatorRef: response.operatorRef || null,
         responseMode: response.responseMode,
         responses: response.responses || [],
-        reasonCodes: response.reasonCodes || null,
-        handledBy: response.handledBy,
-        posture
-      } : {}),
-      ...(cap === SELECTOR_INTENT_CAP ? {
-        actorGroup: response.actorGroup,
-        selectorKind: response.selectorKind,
-        expectedResultMode: response.expectedResultMode,
-        responseMode: response.responseMode,
-        responses: response.responses,
-        handledBy: response.handledBy,
-        posture
-      } : {}),
-      ...(cap === YARD_LIGHTS_SET_STATE_CAP ? {
-        actorGroup: response.actorGroup || null,
-        selectorKind: response.selectorKind || null,
-        requestedState: response.requestedState || null,
-        requestId: response.requestId || null,
-        sourceRatificationRef: response.sourceRatificationRef || null,
-        operatorRef: response.operatorRef || null,
-        admissionState: response.admissionState,
-        responseMode: response.responseMode,
         reasonCodes: response.reasonCodes || null,
         handledBy: response.handledBy,
         posture

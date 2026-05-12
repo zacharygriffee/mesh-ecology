@@ -11,12 +11,6 @@ const BLOCKED_REPO_NAMESPACES = new Set([
   "bytes"
 ]);
 
-const LEGACY_ALLOWED_CAPS = new Set([
-  "cap/edge/control-panel/hello-status",
-  "cap/edge/control-panel/selector-intent",
-  "cap/edge/control-panel/yard-lights/set-state"
-]);
-
 const SKIP_DIRS = new Set([
   ".git",
   ".codex",
@@ -59,7 +53,6 @@ function main() {
     if (!shouldScanFile(file, rel, { explicitFiles })) continue;
     const text = readFileSync(file, "utf8");
     for (const hit of findRepoSpecificCaps(text)) {
-      if (LEGACY_ALLOWED_CAPS.has(hit.cap)) continue;
       violations.push({ file: rel, cap: hit.cap, line: lineForOffset(text, hit.index) });
     }
   }
@@ -104,7 +97,7 @@ function printHelp() {
     "",
     "Checks that Mesh-owned code/docs do not add new adjacent-repo cap namespaces.",
     "Use generic concern-local caps such as cap/concern/call-for-responses/v1",
-    "with producer/profile fields instead of cap/edge/*, cap/platform/*, etc."
+    "with producer/profile fields instead of app-specific cap namespaces."
   ].join("\n"));
 }
 
