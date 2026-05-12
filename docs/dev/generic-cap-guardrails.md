@@ -3,7 +3,7 @@
 Mesh-owned interop caps should stay generic and concern-local.
 
 Do not add new adjacent-repo cap namespaces. Examples include app/repo names
-under `cap/<repo>/...`, such as Edge, Platform, Translate, or Bytes.
+under `cap/<repo>/...`.
 
 Use a Mesh-owned concern convention instead:
 
@@ -16,9 +16,9 @@ Carry producer-specific meaning in payload fields:
 
 ```json
 {
-  "profile": "edge_local_layer_need_call",
+  "profile": "local_layer_need_call",
   "producer": {
-    "repo": "edge",
+    "repo": "sample-adapter",
     "surface": "local-layer"
   }
 }
@@ -34,7 +34,5 @@ Run the tripwire with:
 npm run caps:check
 ```
 
-The current Edge control-panel caps are legacy compatibility examples and are
-explicitly allowlisted in the checker. New app-specific caps should either be
-replaced with a generic `cap/concern/.../v1` convention or require an explicit
-legacy allowlist entry with docs explaining why the generic seam does not fit.
+App-specific caps should be replaced with a generic `cap/concern/.../v1`
+convention unless the user explicitly authorizes a compatibility exception.
