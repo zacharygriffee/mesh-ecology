@@ -3,6 +3,7 @@ import { writeSync } from "fs";
 import { access, mkdir, readFile, writeFile } from "fs/promises";
 import { createHash } from "crypto";
 import { EventEmitter } from "events";
+import http from "http";
 import { setTimeout as delay } from "timers/promises";
 import path from "path";
 import process from "process";
@@ -59,9 +60,18 @@ const CALL_FOR_RESPONSES_ALLOWED_INPUT_KEYS = new Set([
 ]);
 const CALL_FOR_RESPONSES_ALLOWED_PRODUCER_KEYS = new Set(["repo", "surface"]);
 const CALL_FOR_RESPONSES_ALLOWED_SUBJECT_KEYS = new Set(["kind", "summary", "constraints"]);
+const SERVICE_ENDPOINTS = [
+  "GET /health",
+  "GET /capabilities",
+  "POST /concern/setup",
+  "POST /job/submit",
+  "POST /job/status",
+  "POST /responder/run-once"
+];
 
 function printHelp() {
   writeSync(process.stdout.fd, [
+    "mesh service start --host 127.0.0.1 --port <port> --root <mesh-owned-root> --json",
     "mesh concern setup --purpose <purpose> --root <path> [--json]",
     "mesh discovery advertise-concern --discovery <z32> --concern <z32> [--label text] [--wait|--no-wait] [--min-peers n] [--timeout-ms n] [--config path]",
     "mesh discovery advertise-discovery --discovery <z32> --nested <z32> [--label text] [--wait|--no-wait] [--min-peers n] [--timeout-ms n] [--config path]",
@@ -98,6 +108,9 @@ function parseArgs(argv) {
   if (argv[0] === "concern" && argv[1] === "setup") {
     command = "concern setup";
     rest = argv.slice(2);
+  } else if (argv[0] === "service" && argv[1] === "start") {
+    command = "service start";
+    rest = argv.slice(2);
   } else if (argv[0] === "discovery" && argv[1] === "advertise-concern") {
     command = "discovery advertise-concern";
     rest = argv.slice(2);
@@ -133,7 +146,7 @@ function parseArgs(argv) {
       flags.wait = false;
       continue;
     }
-    if ((command === "concern setup" || command === "responder run") && part === "--json") {
+    if ((command === "concern setup" || command === "responder run" || command === "service start") && part === "--json") {
       flags.json = true;
       continue;
     }
@@ -243,19 +256,19 @@ function resolveDurabilityOptions(flags, config) {
   };
 }
 
-async function runDurabilityBarrier(core, targetLength, options) {
+async function runDurabilityBarrier(core, targetLength, options, log = console.log) {
   if (!options.wait) {
-    console.log("durability: skipped");
+    log?.("durability: skipped");
     return { met: false, skipped: true };
   }
 
   try {
     const status = await waitForDurability(core, targetLength, options);
-    console.log("durability: met");
+    log?.("durability: met");
     return status;
   } catch (err) {
     if (err?.code === "DURABILITY_TIMEOUT") {
-      console.log("durability: timeout");
+      log?.("durability: timeout");
     }
     throw err;
   }
@@ -367,6 +380,45 @@ function shellQuote(value) {
   return `'${String(value).replace(/'/g, "'\\''")}'`;
 }
 
+function servicePosture() {
+  return {
+    summary: "Mesh-owned localhost concern operation surface",
+    nonClaims: [
+      "does not provide a global capability registry",
+      "does not search discovery",
+      "does not schedule work",
+      "does not select actors",
+      "does not assign actor obligation",
+      "does not claim completion",
+      "does not claim physical device truth",
+      "does not claim Mesh truth beyond materialized concern view",
+      "does not claim adjacent repo authority",
+      "does not continue work after a request unless explicitly invoked"
+    ],
+    globalCapabilityRegistryClaimed: false,
+    discoverySearchClaimed: false,
+    schedulingClaimed: false,
+    actorSelectionClaimed: false,
+    actorObligationClaimed: false,
+    completionClaimed: false,
+    physicalDeviceTruthClaimed: false,
+    meshTruthBeyondMaterializedConcernViewClaimed: false,
+    adjacentRepoAuthorityClaimed: false,
+    hiddenContinuationClaimed: false
+  };
+}
+
+function serviceCalls(baseUrl, concernKey = "<concernKey>") {
+  return {
+    health: `GET ${baseUrl}/health`,
+    capabilities: `GET ${baseUrl}/capabilities`,
+    setupConcern: `POST ${baseUrl}/concern/setup`,
+    submitJob: `POST ${baseUrl}/job/submit {"concernKey":"${concernKey}","payload":{"cap":"${CALL_FOR_RESPONSES_CAP}","in":{...}}}`,
+    jobStatus: `POST ${baseUrl}/job/status {"concernKey":"${concernKey}"}`,
+    responderRunOnce: `POST ${baseUrl}/responder/run-once {"concernKey":"${concernKey}","cap":"${CALL_FOR_RESPONSES_CAP}"}`
+  };
+}
+
 async function writeSetupConfig(configPath, config) {
   await mkdir(path.dirname(configPath), { recursive: true });
   const body = {
@@ -419,11 +471,9 @@ async function withLocalRuntime(corestoreDir, fn) {
   }
 }
 
-async function cmdConcernSetup({ flags, config }) {
-  const purpose = String(flags.purpose || "").trim();
-  const root = flags.root ? path.resolve(String(flags.root)) : "";
-  const wantsJson = flags.json === true;
-
+async function operationConcernSetup({ purpose, root, config, serviceBaseUrl = null }) {
+  purpose = String(purpose || "").trim();
+  root = root ? path.resolve(String(root)) : "";
   if (!purpose) throw new Error("--purpose is required");
   if (!root) throw new Error("--root is required");
 
@@ -473,6 +523,7 @@ async function cmdConcernSetup({ flags, config }) {
         ok: true,
         action: "concern-setup",
         purpose,
+        serviceState: serviceBaseUrl ? "running" : null,
         concernKey,
         discoveryKey,
         concernStore: {
@@ -507,7 +558,10 @@ async function cmdConcernSetup({ flags, config }) {
             "does not claim canonical truth",
             "does not claim actor response",
             "does not claim job completion",
-            "does not claim production readiness"
+            "does not claim production readiness",
+            "does not schedule work",
+            "does not select actors",
+            "does not provide a global capability registry"
           ]
         },
         nextCommands: {
@@ -516,12 +570,24 @@ async function cmdConcernSetup({ flags, config }) {
           submitJobWithConfig: `node packages/mesh-operator-cli/bin/mesh.js job submit --concern ${concernKey} --json <job.json> --no-wait --config ${shellQuote(configPath)}`,
           statusWithConfig: `node packages/mesh-operator-cli/bin/mesh.js status --concern ${concernKey} --config ${shellQuote(configPath)}`,
           callForResponsesResponderRunOnceWithConfig: `node packages/mesh-operator-cli/bin/mesh.js responder run --concern ${concernKey} --config ${shellQuote(configPath)} --cap ${CALL_FOR_RESPONSES_CAP} --once --json`
-        }
+        },
+        nextServiceCalls: serviceBaseUrl ? serviceCalls(serviceBaseUrl, concernKey) : null
       };
     } finally {
       await discovery.close().catch(() => {});
       await concern.close().catch(() => {});
     }
+  });
+
+  return result;
+}
+
+async function cmdConcernSetup({ flags, config }) {
+  const wantsJson = flags.json === true;
+  const result = await operationConcernSetup({
+    purpose: flags.purpose,
+    root: flags.root,
+    config
   });
 
   if (wantsJson) {
@@ -695,16 +761,10 @@ function shapeJobPayload(value) {
   };
 }
 
-async function cmdJobSubmit({ flags, config }) {
-  const concernKey = flags.concern;
-  const jsonPath = flags.json;
-  const durability = resolveDurabilityOptions(flags, config);
+async function operationJobSubmit({ concernKey, payloadInput, config, durability, logDurability = console.log, serviceBaseUrl = null }) {
   if (!concernKey) throw new Error("--concern is required");
-  if (!jsonPath) throw new Error("--json is required");
-
-  const jsonRaw = await readFile(path.resolve(jsonPath), "utf8");
-  const parsed = JSON.parse(jsonRaw);
-  const payload = shapeJobPayload(parsed);
+  const payload = shapeJobPayload(payloadInput);
+  let receipt = null;
 
   await withRuntime(config, async ({ corestore, swarm, joinTopic }) => {
     const concernKeyBuf = idEncoding.decode(concernKey);
@@ -728,19 +788,59 @@ async function cmdJobSubmit({ flags, config }) {
     const jobKey = await createJob(concern, payload.cap, payload.in);
     await concern.update({ wait: true }).catch(() => {});
     const targetLength = concern.local.length;
-    await runDurabilityBarrier(concern.local, targetLength, durability);
+    await runDurabilityBarrier(concern.local, targetLength, durability, logDurability);
 
-    console.log(JSON.stringify({
+    const jobLeaf = await getJobView(concern).get(jobKey).catch(() => null);
+    const status = await collectConcernStatus(concern, swarm);
+    const jobKeyZ32 = idEncoding.encode(jobKey);
+    receipt = {
       ok: true,
       action: "job-submit",
+      serviceState: serviceBaseUrl ? "running" : null,
       concern: concernKey,
+      concernKey,
       cap: payload.cap,
-      jobKey: idEncoding.encode(jobKey),
-      targetLength
-    }, null, 2));
+      jobKey: jobKeyZ32,
+      targetLength,
+      admission: {
+        appendAccepted: true
+      },
+      materialization: {
+        jobView: jobLeaf ? "observed" : "not_observed",
+        status: jobLeaf ? "materialized" : "pending"
+      },
+      status,
+      posture: serviceBaseUrl ? servicePosture() : null,
+      nextServiceCalls: serviceBaseUrl ? serviceCalls(serviceBaseUrl, concernKey) : null
+    };
 
     await concern.close().catch(() => {});
   });
+
+  return receipt;
+}
+
+async function cmdJobSubmit({ flags, config }) {
+  const jsonPath = flags.json;
+  const durability = resolveDurabilityOptions(flags, config);
+  if (!jsonPath) throw new Error("--json is required");
+
+  const jsonRaw = await readFile(path.resolve(jsonPath), "utf8");
+  const parsed = JSON.parse(jsonRaw);
+  const receipt = await operationJobSubmit({
+    concernKey: flags.concern,
+    payloadInput: parsed,
+    config,
+    durability
+  });
+  console.log(JSON.stringify({
+    ok: receipt.ok,
+    action: receipt.action,
+    concern: receipt.concern,
+    cap: receipt.cap,
+    jobKey: receipt.jobKey,
+    targetLength: receipt.targetLength
+  }, null, 2));
 }
 
 function callForResponsesPosture() {
@@ -985,15 +1085,14 @@ async function findNextResponderJob(concern, cap, responderId) {
   return { jobKey: null, job: null, skipped };
 }
 
-async function cmdResponderRun({ flags, config }) {
-  const concernKey = flags.concern;
-  const cap = flags.cap;
+async function operationResponderRunOnce({ concernKey, cap, config, serviceBaseUrl = null }) {
   const responderId = GENERIC_RESPONDER_ID;
 
   if (!concernKey) throw new Error("--concern is required");
   if (!cap) throw new Error("--cap is required");
   if (!SUPPORTED_RESPONDER_CAPS.has(cap)) throw new Error(`unsupported --cap for generic responder: ${cap}`);
-  if (flags.once !== true) throw new Error("--once is required; responder daemon behavior is not implemented");
+  let receipt = null;
+  let exitCode = 0;
 
   await withRuntime(config, async ({ corestore, swarm, joinTopic }) => {
     const concernKeyBuf = idEncoding.decode(concernKey);
@@ -1019,9 +1118,10 @@ async function cmdResponderRun({ flags, config }) {
     const found = await findNextResponderJob(concern, cap, responderId);
 
     if (!found.jobKey) {
-      const out = {
+      receipt = {
         ok: false,
         action: "responder-run",
+        serviceState: serviceBaseUrl ? "running" : null,
         state: "no_match",
         reason: "no matching pending job",
         concernKey,
@@ -1030,10 +1130,11 @@ async function cmdResponderRun({ flags, config }) {
         handled: 0,
         skipped: found.skipped,
         statusBefore,
-        statusAfter: statusBefore
+        statusAfter: statusBefore,
+        posture: serviceBaseUrl ? servicePosture() : null,
+        nextServiceCalls: serviceBaseUrl ? serviceCalls(serviceBaseUrl, concernKey) : null
       };
-      console.log(JSON.stringify(out, null, 2));
-      process.exitCode = 2;
+      exitCode = 2;
       await concern.close().catch(() => {});
       return;
     }
@@ -1072,9 +1173,10 @@ async function cmdResponderRun({ flags, config }) {
     await concern.update({ wait: true }).catch(() => {});
 
     const statusAfter = await collectConcernStatus(concern, swarm);
-    console.log(JSON.stringify({
+    receipt = {
       ok: true,
       action: "responder-run",
+      serviceState: serviceBaseUrl ? "running" : null,
       state: "handled",
       concernKey,
       jobKey: jobKeyZ32,
@@ -1099,16 +1201,34 @@ async function cmdResponderRun({ flags, config }) {
       } : {}),
       response,
       statusBefore,
-      statusAfter
-    }, null, 2));
+      statusAfter,
+      materialization: {
+        publishView: statusAfter.counts.publish > statusBefore.counts.publish ? "observed" : "not_observed",
+        status: statusAfter.counts.publish > statusBefore.counts.publish ? "materialized" : "pending"
+      },
+      nextServiceCalls: serviceBaseUrl ? serviceCalls(serviceBaseUrl, concernKey) : null
+    };
 
     await concern.close().catch(() => {});
   });
+
+  return { receipt, exitCode };
 }
 
-async function cmdStatus({ flags, config }) {
-  const concernKey = flags.concern;
+async function cmdResponderRun({ flags, config }) {
+  if (flags.once !== true) throw new Error("--once is required; responder daemon behavior is not implemented");
+  const { receipt, exitCode } = await operationResponderRunOnce({
+    concernKey: flags.concern,
+    cap: flags.cap,
+    config
+  });
+  console.log(JSON.stringify(receipt, null, 2));
+  if (exitCode) process.exitCode = exitCode;
+}
+
+async function operationStatus({ concernKey, config, serviceBaseUrl = null }) {
   if (!concernKey) throw new Error("--concern is required");
+  let receipt = null;
 
   await withRuntime(config, async ({ corestore, swarm, joinTopic }) => {
     const concernKeyBuf = idEncoding.decode(concernKey);
@@ -1122,10 +1242,315 @@ async function cmdStatus({ flags, config }) {
 
     await waitForSync(concern, config.timeoutMs);
 
-    console.log(JSON.stringify(await collectConcernStatus(concern, swarm), null, 2));
+    receipt = await collectConcernStatus(concern, swarm);
+    receipt.concernKey = receipt.concern;
+    receipt.serviceState = serviceBaseUrl ? "running" : null;
+    receipt.materialization = {
+      source: "materialized concern view",
+      status: "observed"
+    };
+    receipt.posture = serviceBaseUrl ? servicePosture() : null;
+    receipt.nextServiceCalls = serviceBaseUrl ? serviceCalls(serviceBaseUrl, concernKey) : null;
 
     await concern.close().catch(() => {});
   });
+
+  return receipt;
+}
+
+async function cmdStatus({ flags, config }) {
+  const receipt = await operationStatus({
+    concernKey: flags.concern,
+    config
+  });
+  console.log(JSON.stringify(receipt, null, 2));
+}
+
+function jsonResponse(res, statusCode, value) {
+  const body = `${JSON.stringify(value)}\n`;
+  res.writeHead(statusCode, {
+    "content-type": "application/json; charset=utf-8",
+    "content-length": Buffer.byteLength(body)
+  });
+  res.end(body);
+}
+
+async function readJsonBody(req) {
+  const chunks = [];
+  let size = 0;
+  for await (const chunk of req) {
+    size += chunk.length;
+    if (size > 1024 * 1024) {
+      const err = new Error("request body too large");
+      err.statusCode = 413;
+      throw err;
+    }
+    chunks.push(chunk);
+  }
+  const raw = Buffer.concat(chunks).toString("utf8").trim();
+  if (!raw) return {};
+  const parsed = JSON.parse(raw);
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    const err = new Error("request body must be a JSON object");
+    err.statusCode = 400;
+    throw err;
+  }
+  return parsed;
+}
+
+function serviceCapabilities(baseUrl = null) {
+  return {
+    ok: true,
+    action: "service-capabilities",
+    serviceState: "running",
+    transport: {
+      kind: "localhost-http",
+      jsonReceiptsOnly: true
+    },
+    endpoints: SERVICE_ENDPOINTS,
+    caps: [...SUPPORTED_RESPONDER_CAPS],
+    genericCaps: [CALL_FOR_RESPONSES_CAP],
+    responder: {
+      id: GENERIC_RESPONDER_ID,
+      runOnceOnly: true,
+      daemonResponderClaimed: false,
+      schedulerClaimed: false
+    },
+    registry: {
+      globalCapabilityRegistryClaimed: false
+    },
+    posture: servicePosture(),
+    nextServiceCalls: baseUrl ? serviceCalls(baseUrl) : null
+  };
+}
+
+function isPathInside(parent, child) {
+  const rel = path.relative(parent, child);
+  return rel === "" || (!!rel && !rel.startsWith("..") && !path.isAbsolute(rel));
+}
+
+async function loadOperatorConfigForService(configPath) {
+  const fileConfig = await loadJsonIfPresent(configPath);
+  return normalizeConfig({
+    fileConfig,
+    env: {
+      OPERATOR_TIMEOUT_MS: process.env.OPERATOR_TIMEOUT_MS || ""
+    }
+  });
+}
+
+async function resolveServiceConcernConfig(state, body) {
+  const concernKey = body.concernKey || body.concern;
+  if (!concernKey) throw new Error("concernKey is required");
+
+  let configPath = body.configPath || body.configRefs?.operatorCli || null;
+  if (!configPath && state.concerns.has(concernKey)) {
+    configPath = state.concerns.get(concernKey).configPath;
+  }
+  if (!configPath) {
+    const err = new Error("unknown concernKey; call /concern/setup first or provide configPath");
+    err.statusCode = 404;
+    throw err;
+  }
+
+  configPath = path.resolve(String(configPath));
+  if (!isPathInside(state.root, configPath)) {
+    const err = new Error("configPath must be inside the mesh-owned service root");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const config = await loadOperatorConfigForService(configPath);
+  return { concernKey, configPath, config };
+}
+
+async function cmdServiceStart({ flags, config }) {
+  const host = String(flags.host || "127.0.0.1");
+  const port = toPositiveInt(flags.port, 0);
+  const root = flags.root ? path.resolve(String(flags.root)) : "";
+  if (!root) throw new Error("--root is required");
+  if (!Number.isSafeInteger(port) || port < 0 || port > 65535) throw new Error("--port must be a valid TCP port");
+  await mkdir(root, { recursive: true });
+
+  const state = {
+    root,
+    startedAtMs: Date.now(),
+    concerns: new Map()
+  };
+
+  const server = http.createServer(async (req, res) => {
+    const baseUrl = `http://${host}:${server.address()?.port || port}`;
+    try {
+      const url = new URL(req.url || "/", baseUrl);
+      const route = `${req.method || "GET"} ${url.pathname}`;
+
+      if (route === "GET /health") {
+        jsonResponse(res, 200, {
+          ok: true,
+          action: "service-health",
+          serviceState: "running",
+          host,
+          port: server.address()?.port || port,
+          root,
+          startedAtMs: state.startedAtMs,
+          knownConcerns: state.concerns.size,
+          endpoints: SERVICE_ENDPOINTS,
+          posture: servicePosture(),
+          nextServiceCalls: serviceCalls(baseUrl)
+        });
+        return;
+      }
+
+      if (route === "GET /capabilities") {
+        jsonResponse(res, 200, serviceCapabilities(baseUrl));
+        return;
+      }
+
+      if (route === "POST /concern/setup") {
+        const body = await readJsonBody(req);
+        const receipt = await operationConcernSetup({
+          purpose: body.purpose,
+          root,
+          config,
+          serviceBaseUrl: baseUrl
+        });
+        state.concerns.set(receipt.concernKey, {
+          concernKey: receipt.concernKey,
+          discoveryKey: receipt.discoveryKey,
+          configPath: receipt.configPath,
+          operatorStore: receipt.operatorStore.path,
+          purpose: receipt.purpose
+        });
+        jsonResponse(res, 200, {
+          ...receipt,
+          serviceState: "running",
+          posture: {
+            ...receipt.posture,
+            service: servicePosture()
+          }
+        });
+        return;
+      }
+
+      if (route === "POST /job/submit") {
+        const body = await readJsonBody(req);
+        const { concernKey, configPath, config } = await resolveServiceConcernConfig(state, body);
+        const payloadInput = Object.prototype.hasOwnProperty.call(body, "payload")
+          ? body.payload
+          : { cap: body.cap, in: body.in };
+        const receipt = await operationJobSubmit({
+          concernKey,
+          payloadInput,
+          config,
+          durability: { wait: false, minPeers: 1, timeoutMs: config.timeoutMs },
+          logDurability: null,
+          serviceBaseUrl: baseUrl
+        });
+        jsonResponse(res, 200, {
+          ...receipt,
+          configPath,
+          configRefs: { operatorCli: configPath }
+        });
+        return;
+      }
+
+      if (route === "POST /job/status") {
+        const body = await readJsonBody(req);
+        const { concernKey, configPath, config } = await resolveServiceConcernConfig(state, body);
+        const receipt = await operationStatus({
+          concernKey,
+          config,
+          serviceBaseUrl: baseUrl
+        });
+        jsonResponse(res, 200, {
+          ...receipt,
+          configPath,
+          configRefs: { operatorCli: configPath }
+        });
+        return;
+      }
+
+      if (route === "POST /responder/run-once") {
+        const body = await readJsonBody(req);
+        const cap = body.cap || CALL_FOR_RESPONSES_CAP;
+        if (!SUPPORTED_RESPONDER_CAPS.has(cap)) {
+          jsonResponse(res, 400, {
+            ok: false,
+            action: "responder-run",
+            serviceState: "running",
+            error: `unsupported cap for generic responder: ${cap}`,
+            cap,
+            supportedCaps: [...SUPPORTED_RESPONDER_CAPS],
+            posture: servicePosture()
+          });
+          return;
+        }
+        const { concernKey, configPath, config } = await resolveServiceConcernConfig(state, body);
+        const { receipt } = await operationResponderRunOnce({
+          concernKey,
+          cap,
+          config,
+          serviceBaseUrl: baseUrl
+        });
+        jsonResponse(res, 200, {
+          ...receipt,
+          configPath,
+          configRefs: { operatorCli: configPath }
+        });
+        return;
+      }
+
+      jsonResponse(res, 404, {
+        ok: false,
+        action: "service-error",
+        serviceState: "running",
+        error: "not found",
+        route,
+        endpoints: SERVICE_ENDPOINTS
+      });
+    } catch (err) {
+      jsonResponse(res, err?.statusCode || 500, {
+        ok: false,
+        action: "service-error",
+        serviceState: "running",
+        error: err?.message || String(err),
+        posture: servicePosture()
+      });
+    }
+  });
+
+  await new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(port, host, () => {
+      server.off("error", reject);
+      resolve();
+    });
+  });
+
+  const address = server.address();
+  const actualPort = typeof address === "object" && address ? address.port : port;
+  const baseUrl = `http://${host}:${actualPort}`;
+  const receipt = {
+    ok: true,
+    action: "service-start",
+    serviceState: "running",
+    host,
+    port: actualPort,
+    root,
+    url: baseUrl,
+    endpoints: SERVICE_ENDPOINTS,
+    capabilities: serviceCapabilities(baseUrl),
+    posture: servicePosture(),
+    nextServiceCalls: serviceCalls(baseUrl)
+  };
+  if (flags.json) console.log(JSON.stringify(receipt));
+  else console.log(`mesh service listening on ${baseUrl}`);
+
+  const close = () => {
+    server.close(() => process.exit(0));
+  };
+  process.once("SIGTERM", close);
+  process.once("SIGINT", close);
 }
 
 async function main() {
@@ -1137,6 +1562,11 @@ async function main() {
   const configPath = flags.config || process.env.MESH_OPERATOR_CONFIG || DEFAULT_CONFIG_PATH;
   const fileConfig = await loadJsonIfPresent(configPath);
   const config = normalizeConfig({ fileConfig, env: process.env });
+
+  if (command === "service start") {
+    await cmdServiceStart({ flags, config });
+    return;
+  }
 
   if (command === "concern setup") {
     await cmdConcernSetup({ flags, config });
