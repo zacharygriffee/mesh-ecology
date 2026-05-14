@@ -15,6 +15,18 @@ Use `runLabTwoTransport` from `test/_helpers/lab-two-transport.js` to run one sc
 
 It does not change protocol behavior and does not imply semantic convergence by itself.
 
+### Proof-Scope Matrix
+
+| Lane | What it proves | What it does not prove |
+| --- | --- | --- |
+| Unit and runner tests | Deterministic local logic, state-machine behavior, and contract boundaries. | Transport confidence, mesh contact, or distributed readiness. |
+| Single-transport `fakeswarm` labs | Protocol mechanics and derived-view semantics under deterministic local transport. | Decentralized contact, NAT traversal, public discovery, or production readiness. |
+| Two-transport `fakeswarm` + non-strict `hyperswarm` labs | Deterministic semantic pass plus sampled real-transport evidence. | Distributed readiness when the real leg flakes or never stabilizes. |
+| `LAB_REAL_STRICT=1` / strict CI Hyperswarm labs | Transport confidence for that scenario under the current environment. | Universal decentralized readiness, production health, or future topology stability. |
+| HTTP/operator probes | Presentation, compatibility, and operator-surface behavior. | Mesh readiness, transport proof, or protocol acceptance. |
+
+No single lane should be read as decentralized readiness. A decentralized-readiness claim needs an explicit real contact seam, such as Hyperswarm/HyperDHT/protomux-style transport evidence, plus scoped wording for the environment that produced it.
+
 ### Flake Classification
 
 `runLabTwoTransport` returns:

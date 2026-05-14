@@ -22,6 +22,18 @@ These labs model ecology behavior under v0 constraints without economic enforcem
 4. When NOT to use two-transport:
    - Do not start with two-transport for pass-freshness or acceptance semantics; it adds topology and transport noise with no extra semantic signal.
 
+## Proof-Scope Ladder
+
+| Lane | Use for | Claim boundary |
+| --- | --- | --- |
+| `unit-fast` runner tests | Local runner logic, policy edges, and state-machine behavior. | No transport or mesh-readiness claim. |
+| Single-transport `fakeswarm` labs | Deterministic semantic proof for acceptance, derived views, freshness, and projector observation. | Local deterministic transport only. |
+| Two-transport non-strict labs | Parity evidence and transport flake classification after the fake semantic pass. | Real transport evidence is sampled, not universal readiness. |
+| Strict Hyperswarm labs | Environment-scoped transport confidence. | Still not a production health or public mesh claim. |
+| HTTP/operator probes | Human/operator presentation and compatibility checks. | Not protocol proof and not mesh readiness. |
+
+Use the weakest lane that proves the claim. Escalate to Hyperswarm/HyperDHT/protomux-style contact seams only when the claim needs decentralized transport evidence.
+
 ### Quick chooser (anti-churn)
 
 - If the behavior does not require replication/transport, write a unit test.
@@ -34,6 +46,7 @@ Hyperswarm-strict CI caveats:
 - Real-network legs can fail due to environment constraints (`EPERM`, host networking policy, transient DHT/connectivity noise).
 - Treat fake pass as semantic oracle first; use hyperswarm strict lanes as transport confidence, not first-line semantic debugging.
 - For local semantic iteration, prefer fake-only (`LAB_REAL=0`) before escalating to strict real-network runs.
+- Do not describe fake-only success as decentralized readiness.
 
 ## Acceptance is derived-view materialization
 
