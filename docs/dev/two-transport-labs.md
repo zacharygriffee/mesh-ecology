@@ -23,11 +23,12 @@ It does not change protocol behavior and does not imply semantic convergence by 
 | Single-transport `fakeswarm` labs | Protocol mechanics and derived-view semantics under deterministic local transport. | Decentralized contact, NAT traversal, public discovery, or production readiness. |
 | Two-transport `fakeswarm` + non-strict `hyperswarm` labs | Deterministic semantic pass plus sampled real-transport evidence. | Distributed readiness when the real leg flakes or never stabilizes. |
 | `LAB_REAL_STRICT=1` / strict CI Hyperswarm labs | Transport confidence for that scenario under the current environment. | Universal decentralized readiness, production health, or future topology stability. |
+| `lab-contact-proof.direct-peer` | Bounded Protomux RPC exchange over a HyperDHT direct-peer seam. | Full mesh semantics, concern/discovery participation, NAT traversal guarantee, or distributed readiness. |
 | HTTP/operator probes | Presentation, compatibility, and operator-surface behavior. | Mesh readiness, transport proof, or protocol acceptance. |
 
 No single lane should be read as decentralized readiness. A decentralized-readiness claim needs an explicit real contact seam, such as Hyperswarm/HyperDHT/protomux-style transport evidence, plus scoped wording for the environment that produced it.
 
-The next planned direct participant contact lane is tracked in [Contact Proof Lane Plan](./contact-proof-lane.md).
+The direct participant contact lane is tracked in [Contact Proof Lane](./contact-proof-lane.md).
 
 ### Flake Classification
 

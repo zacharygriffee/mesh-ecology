@@ -30,17 +30,19 @@ These labs model ecology behavior under v0 constraints without economic enforcem
 | Single-transport `fakeswarm` labs | Deterministic semantic proof for acceptance, derived views, freshness, and projector observation. | Local deterministic transport only. |
 | Two-transport non-strict labs | Parity evidence and transport flake classification after the fake semantic pass. | Real transport evidence is sampled, not universal readiness. |
 | Strict Hyperswarm labs | Environment-scoped transport confidence. | Still not a production health or public mesh claim. |
+| Direct contact proof lane | Bounded Protomux RPC exchange over a HyperDHT direct-peer seam. | Not full concern/discovery participation, NAT traversal guarantee, or distributed readiness. |
 | HTTP/operator probes | Human/operator presentation and compatibility checks. | Not protocol proof and not mesh readiness. |
 
 Use the weakest lane that proves the claim. Escalate to Hyperswarm/HyperDHT/protomux-style contact seams only when the claim needs decentralized transport evidence.
 
-For the next narrow decentralized contact lane, see [Contact Proof Lane Plan](./contact-proof-lane.md).
+For the narrow direct contact lane, see [Contact Proof Lane](./contact-proof-lane.md).
 
 ### Quick chooser (anti-churn)
 
 - If the behavior does not require replication/transport, write a unit test.
 - If proving semantic behavior (acceptance gates, projector observation, pass freshness), use single-transport `fakeswarm` first.
 - Use two-transport labs only when you explicitly need transport-parity/readiness evidence.
+- Use `lab-contact-proof.direct-peer` when the claim is direct participant contact through a HyperDHT/Protomux seam.
 - For pass-fresh checks, use `test/labs/lab-pass-fresh.view-update.test.js` as canonical and keep it in default lanes.
 - Treat extra two-transport pass-fresh variants as optional investigation artifacts, not canonical defaults.
 

@@ -1,7 +1,8 @@
-# Contact Proof Lane Plan
+# Contact Proof Lane
 
-This plan defines the next mesh-layer transport proof lane. It is a work packet,
-not an implementation.
+This document defines the first mesh-layer direct contact proof lane. The narrow
+lane is implemented by `test/labs/lab-contact-proof.direct-peer.test.js` with
+the reusable helper in `test/_helpers/direct-contact-proof.js`.
 
 ## Goal
 
@@ -12,7 +13,7 @@ surface.
 The first useful proof is direct participant contact. It should not try to prove
 all mesh semantics, actor economics, production health, or universal readiness.
 
-## Preferred First Lane
+## Implemented First Lane
 
 Use Protomux RPC over a HyperDHT direct-peer seam.
 
@@ -26,16 +27,35 @@ Why this first:
 - It creates a clear contact seam that Edge and Platform can reference before
   they need a full mesh discovery flow.
 
-## Candidate Lane Shape
+The current lab uses an isolated local HyperDHT bootstrapper so the test proves
+direct peer contact through a HyperDHT-shaped seam without depending on public
+DHT health, public discovery, HTTP, SSH, or inbound port configuration.
+
+## Evidence Shape
 
 ```json
 {
+  "artifactKind": "mesh_contact_proof_evidence",
+  "schema": "mesh-v0-2/contact-proof/direct-peer/v1",
   "proofKind": "mesh_contact_direct_peer_lab",
   "transportKind": "protomux-rpc",
   "contactSeam": "hyperdht_direct_peer",
   "participantA": "mesh-contact-host",
   "participantB": "mesh-contact-client",
-  "operation": "capability_echo_or_status",
+  "operation": "capability.echo",
+  "selectedTransport": {
+    "transportKind": "protomux-rpc",
+    "contactSeam": "hyperdht_direct_peer",
+    "transportRole": "proof_lane",
+    "scope": "isolated_local_hyperdht",
+    "scaffoldTransport": false,
+    "compatibilityAlias": false,
+    "productionPreferred": false
+  },
+  "readinessEvidence": {
+    "readinessScope": "direct_peer_contact",
+    "distributedReadinessClaimed": false
+  },
   "contactAttempted": true,
   "contactSucceeded": true,
   "distributedReadinessClaimed": false
@@ -44,7 +64,8 @@ Why this first:
 
 ## Minimal Scenario
 
-1. Start a host participant with a HyperDHT key pair.
+1. Start a local HyperDHT bootstrapper.
+2. Start a host participant with a HyperDHT key pair.
 2. Expose one Protomux RPC method with a fixed bounded request and response.
 3. Start a client participant with the host public key.
 4. Client opens direct contact and calls the method.
@@ -57,10 +78,10 @@ Why this first:
    - response id;
    - elapsed time;
    - failure class when contact fails.
-6. Close all DHT/RPC resources deterministically.
+6. Close all DHT/RPC/bootstrap resources deterministically.
 
-The method should be intentionally small, such as `status.echo` or
-`capability.echo`. It should not create jobs, publish PUBs, emit RATs, install
+The method is intentionally small: `capability.echo`. It does not create jobs,
+publish PUBs, emit RATs, install
 anything, or mutate long-lived state.
 
 ## What This Lane Proves
@@ -93,17 +114,18 @@ anything, or mutate long-lived state.
 | HTTP/operator probes | presentation and compatibility | mesh contact proof |
 | Protomux RPC over HyperDHT | direct participant contact proof | full mesh semantic proof |
 
-## Implementation Packet Boundary
+## Implementation Boundary
 
-The first implementation packet should add:
+The first implementation packet added:
 
 - a small test helper under `test/_helpers/` for direct-peer contact resources;
-- one test under `test/utility/` or `test/labs/` with explicit proof scope;
+- one test under `test/labs/` with explicit proof scope;
 - deterministic cleanup for DHT/RPC resources;
-- flake classification only if the environment makes direct contact unstable;
+- failure classification for contact timeout, host listen failure, RPC contact
+  failure, and semantic response mismatch;
 - documentation updates to this file and the proof-scope matrix.
 
-It must not add:
+It does not add:
 
 - HTTP fallback inside the proof lane;
 - scheduler, watcher, daemon, deployment, or activation behavior;
@@ -111,9 +133,15 @@ It must not add:
 - broad lab rewrites;
 - replacement of the existing two-transport harness.
 
+## Run It
+
+```bash
+npm test -- test/labs/lab-contact-proof.direct-peer.test.js
+```
+
 ## Success Criteria
 
-The first proof lane is successful when:
+The proof lane is successful when:
 
 - a local test performs a Protomux RPC exchange over HyperDHT direct peer;
 - the receipt/evidence names `transportKind: "protomux-rpc"` and
