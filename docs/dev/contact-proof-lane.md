@@ -2,7 +2,7 @@
 
 This document defines the first mesh-layer direct contact proof lane. The narrow
 lane is implemented by `test/labs/lab-contact-proof.direct-peer.test.js` with
-the reusable helper in `test/_helpers/direct-contact-proof.js`.
+the reusable runner in `src/contact-proof/direct-peer.js`.
 
 ## Goal
 
@@ -137,6 +137,8 @@ It does not add:
 
 ```bash
 npm test -- test/labs/lab-contact-proof.direct-peer.test.js
+npm run contact:proof -- --json
+npm run contact:proof -- --output ./.lab/contact-proof/direct-peer.json
 ```
 
 ## Success Criteria
@@ -144,6 +146,7 @@ npm test -- test/labs/lab-contact-proof.direct-peer.test.js
 The proof lane is successful when:
 
 - a local test performs a Protomux RPC exchange over HyperDHT direct peer;
+- the export command emits a `mesh_contact_proof_evidence` artifact;
 - the receipt/evidence names `transportKind: "protomux-rpc"` and
   `contactSeam: "hyperdht_direct_peer"`;
 - failure output distinguishes contact failure from semantic failure;

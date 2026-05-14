@@ -6,6 +6,7 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
+    "contact:proof": "node scripts/contact-proof-direct-peer.js",
     "docs:check": "node scripts/docs-check.mjs",
     "test": "node test/run-files.js",
     "caps:check": "node scripts/check-generic-caps.js",
