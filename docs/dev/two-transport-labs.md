@@ -27,6 +27,8 @@ It does not change protocol behavior and does not imply semantic convergence by 
 
 No single lane should be read as decentralized readiness. A decentralized-readiness claim needs an explicit real contact seam, such as Hyperswarm/HyperDHT/protomux-style transport evidence, plus scoped wording for the environment that produced it.
 
+The next planned direct participant contact lane is tracked in [Contact Proof Lane Plan](./contact-proof-lane.md).
+
 ### Flake Classification
 
 `runLabTwoTransport` returns:

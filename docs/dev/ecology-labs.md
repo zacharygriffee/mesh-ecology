@@ -34,6 +34,8 @@ These labs model ecology behavior under v0 constraints without economic enforcem
 
 Use the weakest lane that proves the claim. Escalate to Hyperswarm/HyperDHT/protomux-style contact seams only when the claim needs decentralized transport evidence.
 
+For the next narrow decentralized contact lane, see [Contact Proof Lane Plan](./contact-proof-lane.md).
+
 ### Quick chooser (anti-churn)
 
 - If the behavior does not require replication/transport, write a unit test.
