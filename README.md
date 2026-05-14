@@ -26,6 +26,15 @@ Naming note:
 - Higher-level control-plane, product, and research doctrine should remain authoritative in their own repos.
 - Use [docs/use-cases/README.md](docs/use-cases/README.md) to choose the appropriate integration seam.
 
+## System Spine
+
+For repo-family composition, layer boundaries, and proof standards, use
+[`mesh-ecology-spine`](https://github.com/zacharygriffee/mesh-ecology-spine)
+as the system-level reference. This repo owns mesh-layer protocol semantics;
+the spine explains how those semantics compose with Edge, Platform,
+causal-substrate, and Packs without turning HTTP, SSH, or local paths into
+distributed-readiness proof.
+
 ## Start Here
 
 - Practical use cases (adjacent repos, apps, actor authors): [docs/use-cases/README.md](docs/use-cases/README.md)
