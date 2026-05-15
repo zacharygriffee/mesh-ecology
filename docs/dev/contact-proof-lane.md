@@ -161,6 +161,22 @@ npm run contact:proof -- --json
 npm run contact:proof -- --output ./.lab/contact-proof/direct-peer.json
 ```
 
+For an Edge proof-first handoff, write the proof artifact to a shared
+operator-selected handoff directory and let Edge inspect or consume that file:
+
+```bash
+npm run contact:proof -- --output <proof-dir>/mesh-v0-2-contact-proof.json
+cd <mesh-ecology-edge-repo>
+npm run edge -- contact proof inspect --evidence <proof-dir>/mesh-v0-2-contact-proof.json
+```
+
+Edge can print the full producer, inspect, attach, and proof-first smoke
+sequence without running mesh-v0-2 commands:
+
+```bash
+npm run edge -- contact proof handoff --source mesh --proof-dir <proof-dir> --mesh-repo <mesh-v0-2-repo> --events-dir <edge-events-dir> --operation <operation-id> --config <target-config> --platform-target <platform-target-id> --mesh-target <mesh-target-id> --intent <operator-intent>
+```
+
 ## Success Criteria
 
 The proof lane is successful when:
