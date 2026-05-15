@@ -11,12 +11,20 @@ import {
   CONTACT_PROOF_RESPONSE_ENCODING,
   CONTACT_PROTOCOL_FAMILY,
   CONTACT_PROTOCOL_SCHEMA,
+  PARTICIPANT_CAPABILITIES_DISPATCH_COMMAND,
+  PARTICIPANT_CAPABILITIES_METHOD,
+  PARTICIPANT_CAPABILITIES_REQUEST_ENCODING,
+  PARTICIPANT_CAPABILITIES_RESPONSE_ENCODING,
   createContactProofCapabilityDescriptor,
   decodeContactProofResponse,
+  decodeParticipantCapabilitiesResponse,
   dispatchContactProofRequest,
+  dispatchParticipantCapabilitiesRequest,
   dispatchVersion,
   encodeContactProofRequest,
   encodeContactProofResponse,
+  encodeParticipantCapabilitiesRequest,
+  encodeParticipantCapabilitiesResponse,
   protocolVersion
 } from "./protocol.js";
 
@@ -30,6 +38,8 @@ async function runDirectContactProof({
   const started = Date.now();
   const requestId = `mesh-contact-request:${crypto.randomBytes(8).toString("hex")}`;
   const responseId = `mesh-contact-response:${crypto.randomBytes(8).toString("hex")}`;
+  const capabilityRequestId = `mesh-capabilities-request:${crypto.randomBytes(8).toString("hex")}`;
+  const capabilityResponseId = `mesh-capabilities-response:${crypto.randomBytes(8).toString("hex")}`;
   const port = await allocateTcpPort();
   const bootstrapNode = `127.0.0.1:${port}`;
   const bootstrap = DHT.bootstrapper(port, "127.0.0.1");
@@ -45,6 +55,7 @@ async function runDirectContactProof({
   let failureClass = null;
   let failureMessage = null;
   let responsePayload = null;
+  let capabilityAdvertisement = null;
 
   try {
     server = hostNode.createServer((socket) => {
@@ -62,6 +73,17 @@ async function runDirectContactProof({
           ok: true
         }));
         return encodeContactProofResponse(response);
+      });
+      rpc.respond(PARTICIPANT_CAPABILITIES_METHOD, async (raw) => {
+        const response = await dispatchParticipantCapabilitiesRequest(raw, (request) => ({
+          responseId: capabilityResponseId,
+          requestId: request.requestId,
+          participant: "mesh-contact-host",
+          protocolFamily: CONTACT_PROTOCOL_FAMILY,
+          protocolSchema: CONTACT_PROTOCOL_SCHEMA,
+          capabilities: [createContactProofCapabilityDescriptor()]
+        }));
+        return encodeParticipantCapabilitiesResponse(response);
       });
     });
 
@@ -84,10 +106,32 @@ async function runDirectContactProof({
       "rpc-request"
     );
     responsePayload = decodeContactProofResponse(rawResponse);
-    contactSucceeded = responsePayload?.ok === true && responsePayload?.requestId === requestId;
+    const rawCapabilityAdvertisement = await withTimeout(
+      clientRpc.request(
+        PARTICIPANT_CAPABILITIES_METHOD,
+        encodeParticipantCapabilitiesRequest({
+          requestId: capabilityRequestId,
+          participant: "mesh-contact-client"
+        }),
+        { timeout: timeoutMs }
+      ),
+      timeoutMs,
+      "capabilities-request"
+    );
+    capabilityAdvertisement = decodeParticipantCapabilitiesResponse(rawCapabilityAdvertisement);
+    const capabilityAdvertisementSucceeded =
+      capabilityAdvertisement?.requestId === capabilityRequestId &&
+      capabilityAdvertisement?.capabilities?.some((capability) =>
+        capability?.capability === CONTACT_PROOF_CAPABILITY &&
+        capability?.methodName === CONTACT_PROOF_METHOD &&
+        capability?.contactSeam === "hyperdht_direct_peer"
+      ) === true;
+    contactSucceeded = responsePayload?.ok === true &&
+      responsePayload?.requestId === requestId &&
+      capabilityAdvertisementSucceeded;
     if (!contactSucceeded) {
       failureClass = "semantic_response_mismatch";
-      failureMessage = "direct contact response did not preserve request identity";
+      failureMessage = "direct contact response or capability advertisement did not preserve expected identity";
     }
   } catch (err) {
     failureClass = classifyContactFailure(err);
@@ -106,6 +150,9 @@ async function runDirectContactProof({
     requestEncoding: CONTACT_PROOF_REQUEST_ENCODING,
     responseEncoding: CONTACT_PROOF_RESPONSE_ENCODING,
     dispatchCommand: CONTACT_PROOF_DISPATCH_COMMAND,
+    capabilitiesRequestEncoding: PARTICIPANT_CAPABILITIES_REQUEST_ENCODING,
+    capabilitiesResponseEncoding: PARTICIPANT_CAPABILITIES_RESPONSE_ENCODING,
+    capabilitiesDispatchCommand: PARTICIPANT_CAPABILITIES_DISPATCH_COMMAND,
     proofKind: "mesh_contact_direct_peer_lab",
     transportKind: "protomux-rpc",
     contactSeam: "hyperdht_direct_peer",
@@ -133,6 +180,7 @@ async function runDirectContactProof({
       distributedReadinessClaimed: false
     },
     capabilityDescriptor: createContactProofCapabilityDescriptor(),
+    capabilityAdvertisement,
     bootstrapNodes: [bootstrapNode],
     contactAttempted,
     contactSucceeded,
@@ -221,5 +269,9 @@ export {
   CONTACT_PROOF_SCHEMA,
   CONTACT_PROTOCOL_FAMILY,
   CONTACT_PROTOCOL_SCHEMA,
+  PARTICIPANT_CAPABILITIES_DISPATCH_COMMAND,
+  PARTICIPANT_CAPABILITIES_METHOD,
+  PARTICIPANT_CAPABILITIES_REQUEST_ENCODING,
+  PARTICIPANT_CAPABILITIES_RESPONSE_ENCODING,
   runDirectContactProof
 };

@@ -10,6 +10,10 @@ import {
   CONTACT_PROOF_SCHEMA,
   CONTACT_PROTOCOL_FAMILY,
   CONTACT_PROTOCOL_SCHEMA,
+  PARTICIPANT_CAPABILITIES_DISPATCH_COMMAND,
+  PARTICIPANT_CAPABILITIES_METHOD,
+  PARTICIPANT_CAPABILITIES_REQUEST_ENCODING,
+  PARTICIPANT_CAPABILITIES_RESPONSE_ENCODING,
   runDirectContactProof
 } from "../_helpers/direct-contact-proof.js";
 
@@ -23,8 +27,11 @@ test("lab-contact-proof.direct-peer proves bounded Protomux RPC over HyperDHT di
   t.is(evidence.requestEncoding, CONTACT_PROOF_REQUEST_ENCODING);
   t.is(evidence.responseEncoding, CONTACT_PROOF_RESPONSE_ENCODING);
   t.is(evidence.dispatchCommand, CONTACT_PROOF_DISPATCH_COMMAND);
-  t.is(evidence.protocolSchemaVersion, 2);
-  t.is(evidence.dispatchVersion, 2);
+  t.is(evidence.protocolSchemaVersion, 3);
+  t.is(evidence.dispatchVersion, 3);
+  t.is(evidence.capabilitiesRequestEncoding, PARTICIPANT_CAPABILITIES_REQUEST_ENCODING);
+  t.is(evidence.capabilitiesResponseEncoding, PARTICIPANT_CAPABILITIES_RESPONSE_ENCODING);
+  t.is(evidence.capabilitiesDispatchCommand, PARTICIPANT_CAPABILITIES_DISPATCH_COMMAND);
   t.is(evidence.proofKind, "mesh_contact_direct_peer_lab");
   t.is(evidence.transportKind, "protomux-rpc");
   t.is(evidence.contactSeam, "hyperdht_direct_peer");
@@ -44,6 +51,15 @@ test("lab-contact-proof.direct-peer proves bounded Protomux RPC over HyperDHT di
   t.is(evidence.capabilityDescriptor.meshLayerDefault, false);
   t.is(evidence.capabilityDescriptor.discoveryRequired, false);
   t.is(evidence.capabilityDescriptor.participantContact, true);
+  t.is(evidence.capabilityAdvertisement.requestId.startsWith("mesh-capabilities-request:"), true);
+  t.is(evidence.capabilityAdvertisement.responseId.startsWith("mesh-capabilities-response:"), true);
+  t.is(evidence.capabilityAdvertisement.participant, "mesh-contact-host");
+  t.is(evidence.capabilityAdvertisement.protocolFamily, CONTACT_PROTOCOL_FAMILY);
+  t.is(evidence.capabilityAdvertisement.protocolSchema, CONTACT_PROTOCOL_SCHEMA);
+  t.is(evidence.capabilityAdvertisement.capabilities.length, 1);
+  t.is(evidence.capabilityAdvertisement.capabilities[0].capability, CONTACT_PROOF_CAPABILITY);
+  t.is(evidence.capabilityAdvertisement.capabilities[0].methodName, CONTACT_PROOF_METHOD);
+  t.is(PARTICIPANT_CAPABILITIES_METHOD, "participant.capabilities.get");
   t.is(evidence.selectedTransport.transportKind, "protomux-rpc");
   t.is(evidence.selectedTransport.contactSeam, "hyperdht_direct_peer");
   t.is(evidence.selectedTransport.transportRole, "proof_lane");

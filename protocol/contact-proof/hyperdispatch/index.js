@@ -9,14 +9,18 @@ const defaultVersion = version
 class Router {
   constructor () {
     this._handler0 = null
+    this._handler1 = null
 
-    this._missing = 1
+    this._missing = 2
   }
 
   add (name, handler) {
     switch (name) {
       case '@mesh-contact/capability-echo':
         this._handler0 = handler
+        break
+      case '@mesh-contact/participant-capabilities-get':
+        this._handler1 = handler
         break
       default:
         throw DispatchError.NONEXISTENT_ROUTE(name)
@@ -26,6 +30,7 @@ class Router {
 
   _checkAll () {
     assert(this._handler0 !== null, 'Missing handler for "@mesh-contact/capability-echo"')
+    assert(this._handler1 !== null, 'Missing handler for "@mesh-contact/participant-capabilities-get"')
   }
 
   async dispatch (message, context) {
@@ -40,6 +45,8 @@ class Router {
     switch (op.id) {
       case 0:
         return this._handler0(op.value, context)
+      case 1:
+        return this._handler1(op.value, context)
       default:
         throw DispatchError.HANDLER_NOT_FOUND_BY_ID(op.id)
     }
@@ -79,10 +86,18 @@ const route0 = {
   enc: getEncoding('@mesh-contact/contact-proof-request')
 }
 
+const route1 = {
+  name: '@mesh-contact/participant-capabilities-get',
+  id: 1,
+  enc: getEncoding('@mesh-contact/participant-capabilities-request')
+}
+
 function getRouteByName (name) {
   switch (name) {
     case '@mesh-contact/capability-echo':
       return route0
+    case '@mesh-contact/participant-capabilities-get':
+      return route1
     default:
       throw DispatchError.ROUTE_NOT_FOUND_BY_NAME(name)
   }
@@ -92,6 +107,8 @@ function getRouteById (id) {
   switch (id) {
     case 0:
       return route0
+    case 1:
+      return route1
     default:
       throw DispatchError.HANDLER_NOT_FOUND_BY_ID(id)
   }

@@ -76,6 +76,26 @@ contact.register({
 });
 
 contact.register({
+  name: "participant-capabilities-request",
+  fields: [
+    { name: "requestId", type: "string", required: true },
+    { name: "participant", type: "string", required: true }
+  ]
+});
+
+contact.register({
+  name: "participant-capabilities-response",
+  fields: [
+    { name: "responseId", type: "string", required: true },
+    { name: "requestId", type: "string", required: true },
+    { name: "participant", type: "string", required: true },
+    { name: "protocolFamily", type: "string", required: true },
+    { name: "protocolSchema", type: "string", required: true },
+    { name: "capabilities", type: "@mesh-contact/capability-descriptor", array: true, required: true }
+  ]
+});
+
+contact.register({
   name: "contact-proof-evidence",
   fields: [
     { name: "artifactKind", type: "string", required: true },
@@ -103,7 +123,8 @@ contact.register({
     { name: "elapsedMs", type: "uint" },
     { name: "failureClass", type: "string" },
     { name: "failureMessage", type: "string" },
-    { name: "capabilityDescriptor", type: "@mesh-contact/capability-descriptor" }
+    { name: "capabilityDescriptor", type: "@mesh-contact/capability-descriptor" },
+    { name: "capabilityAdvertisement", type: "@mesh-contact/participant-capabilities-response" }
   ]
 });
 
@@ -115,6 +136,11 @@ const dispatch = hyperdispatch.namespace("mesh-contact");
 dispatch.register({
   name: "capability-echo",
   requestType: "@mesh-contact/contact-proof-request"
+});
+
+dispatch.register({
+  name: "participant-capabilities-get",
+  requestType: "@mesh-contact/participant-capabilities-request"
 });
 
 Hyperdispatch.toDisk(hyperdispatch, DISPATCH_DIR, { esm: true });

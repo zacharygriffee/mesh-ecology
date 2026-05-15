@@ -8,15 +8,24 @@ import {
   CONTACT_PROOF_RESPONSE_ENCODING,
   CONTACT_PROTOCOL_FAMILY,
   CONTACT_PROTOCOL_SCHEMA,
+  PARTICIPANT_CAPABILITIES_DISPATCH_COMMAND,
+  PARTICIPANT_CAPABILITIES_METHOD,
+  PARTICIPANT_CAPABILITIES_REQUEST_ENCODING,
+  PARTICIPANT_CAPABILITIES_RESPONSE_ENCODING,
   createContactProofCapabilityDescriptor,
   decodeContactProofEvidence,
   decodeContactProofRequest,
   decodeContactProofResponse,
+  decodeParticipantCapabilitiesRequest,
+  decodeParticipantCapabilitiesResponse,
   dispatchContactProofRequest,
+  dispatchParticipantCapabilitiesRequest,
   dispatchVersion,
   encodeContactProofEvidence,
   encodeContactProofRequest,
   encodeContactProofResponse,
+  encodeParticipantCapabilitiesRequest,
+  encodeParticipantCapabilitiesResponse,
   protocolVersion
 } from "../../src/contact-proof/protocol.js";
 
@@ -31,8 +40,8 @@ test("contact proof protocol encodes request response and evidence with stable m
   const decodedRequest = decodeContactProofRequest(encodedRequest);
 
   t.alike(decodedRequest, request);
-  t.is(protocolVersion, 2);
-  t.is(dispatchVersion, 2);
+  t.is(protocolVersion, 3);
+  t.is(dispatchVersion, 3);
 
   const dispatched = await dispatchContactProofRequest(encodedRequest, (message) => ({
     responseId: "mesh-contact-response:test",
@@ -49,6 +58,33 @@ test("contact proof protocol encodes request response and evidence with stable m
   t.is(decodedResponse.responseId, "mesh-contact-response:test");
   t.is(decodedResponse.ok, true);
 
+  const capabilitiesRequest = {
+    requestId: "mesh-capabilities-request:test",
+    participant: "mesh-contact-client"
+  };
+  const decodedCapabilitiesRequest = decodeParticipantCapabilitiesRequest(
+    encodeParticipantCapabilitiesRequest(capabilitiesRequest)
+  );
+  t.alike(decodedCapabilitiesRequest, capabilitiesRequest);
+  const capabilitiesResponse = await dispatchParticipantCapabilitiesRequest(
+    encodeParticipantCapabilitiesRequest(capabilitiesRequest),
+    (message) => ({
+      responseId: "mesh-capabilities-response:test",
+      requestId: message.requestId,
+      participant: "mesh-contact-host",
+      protocolFamily: CONTACT_PROTOCOL_FAMILY,
+      protocolSchema: CONTACT_PROTOCOL_SCHEMA,
+      capabilities: [createContactProofCapabilityDescriptor()]
+    })
+  );
+  const decodedCapabilitiesResponse = decodeParticipantCapabilitiesResponse(
+    encodeParticipantCapabilitiesResponse(capabilitiesResponse)
+  );
+  t.is(decodedCapabilitiesResponse.requestId, capabilitiesRequest.requestId);
+  t.is(decodedCapabilitiesResponse.responseId, "mesh-capabilities-response:test");
+  t.is(decodedCapabilitiesResponse.capabilities[0].capability, CONTACT_PROOF_CAPABILITY);
+  t.is(PARTICIPANT_CAPABILITIES_METHOD, "participant.capabilities.get");
+
   const evidence = {
     artifactKind: "mesh_contact_proof_evidence",
     schema: CONTACT_PROTOCOL_SCHEMA,
@@ -57,6 +93,9 @@ test("contact proof protocol encodes request response and evidence with stable m
     requestEncoding: CONTACT_PROOF_REQUEST_ENCODING,
     responseEncoding: CONTACT_PROOF_RESPONSE_ENCODING,
     dispatchCommand: CONTACT_PROOF_DISPATCH_COMMAND,
+    capabilitiesRequestEncoding: PARTICIPANT_CAPABILITIES_REQUEST_ENCODING,
+    capabilitiesResponseEncoding: PARTICIPANT_CAPABILITIES_RESPONSE_ENCODING,
+    capabilitiesDispatchCommand: PARTICIPANT_CAPABILITIES_DISPATCH_COMMAND,
     proofKind: "mesh_contact_direct_peer_lab",
     transportKind: "protomux-rpc",
     contactSeam: "hyperdht_direct_peer",
@@ -85,6 +124,7 @@ test("contact proof protocol encodes request response and evidence with stable m
       serviceBackendClaimed: false
     },
     capabilityDescriptor: createContactProofCapabilityDescriptor(),
+    capabilityAdvertisement: decodedCapabilitiesResponse,
     contactAttempted: true,
     contactSucceeded: true,
     distributedReadinessClaimed: false,
@@ -103,6 +143,7 @@ test("contact proof protocol encodes request response and evidence with stable m
   t.is(decodedEvidence.capabilityDescriptor.localLayerDefault, true);
   t.is(decodedEvidence.capabilityDescriptor.meshLayerDefault, false);
   t.is(decodedEvidence.capabilityDescriptor.discoveryRequired, false);
+  t.is(decodedEvidence.capabilityAdvertisement.capabilities[0].capability, CONTACT_PROOF_CAPABILITY);
   t.is(decodedEvidence.selectedTransport.participantContact, true);
   t.is(decodedEvidence.readinessEvidence.distributedReadinessClaimed, false);
 });

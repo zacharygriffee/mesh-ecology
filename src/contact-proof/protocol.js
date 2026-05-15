@@ -19,6 +19,10 @@ const CONTACT_PROOF_DISPATCH_COMMAND = "@mesh-contact/capability-echo";
 const CONTACT_PROOF_CAPABILITY = "contact-proof";
 const CONTACT_PROOF_METHOD = "capability.echo";
 const CONTACT_PROOF_CAPABILITY_SCOPE = "bounded_direct_participant_contact";
+const PARTICIPANT_CAPABILITIES_REQUEST_ENCODING = "@mesh-contact/participant-capabilities-request";
+const PARTICIPANT_CAPABILITIES_RESPONSE_ENCODING = "@mesh-contact/participant-capabilities-response";
+const PARTICIPANT_CAPABILITIES_DISPATCH_COMMAND = "@mesh-contact/participant-capabilities-get";
+const PARTICIPANT_CAPABILITIES_METHOD = "participant.capabilities.get";
 
 function createContactProofCapabilityDescriptor() {
   return {
@@ -55,6 +59,30 @@ function decodeContactProofRequest(value) {
 async function dispatchContactProofRequest(value, handler) {
   const router = new Router();
   router.add(CONTACT_PROOF_DISPATCH_COMMAND, handler);
+  router.add(PARTICIPANT_CAPABILITIES_DISPATCH_COMMAND, () => {
+    throw new Error(`unexpected participant capabilities dispatch on ${CONTACT_PROOF_DISPATCH_COMMAND}`);
+  });
+  return await router.dispatch(value);
+}
+
+function encodeParticipantCapabilitiesRequest(value) {
+  return encodeDispatchMessage(PARTICIPANT_CAPABILITIES_DISPATCH_COMMAND, value);
+}
+
+function decodeParticipantCapabilitiesRequest(value) {
+  const decoded = decodeDispatchMessage(value);
+  if (decoded.name !== PARTICIPANT_CAPABILITIES_DISPATCH_COMMAND) {
+    throw new Error(`unexpected participant capabilities dispatch command: ${decoded.name}`);
+  }
+  return decoded.value;
+}
+
+async function dispatchParticipantCapabilitiesRequest(value, handler) {
+  const router = new Router();
+  router.add(CONTACT_PROOF_DISPATCH_COMMAND, () => {
+    throw new Error(`unexpected contact proof dispatch on ${PARTICIPANT_CAPABILITIES_DISPATCH_COMMAND}`);
+  });
+  router.add(PARTICIPANT_CAPABILITIES_DISPATCH_COMMAND, handler);
   return await router.dispatch(value);
 }
 
@@ -64,6 +92,14 @@ function encodeContactProofResponse(value) {
 
 function decodeContactProofResponse(value) {
   return decodeProtocolMessage(CONTACT_PROOF_RESPONSE_ENCODING, value);
+}
+
+function encodeParticipantCapabilitiesResponse(value) {
+  return encodeProtocolMessage(PARTICIPANT_CAPABILITIES_RESPONSE_ENCODING, value);
+}
+
+function decodeParticipantCapabilitiesResponse(value) {
+  return decodeProtocolMessage(PARTICIPANT_CAPABILITIES_RESPONSE_ENCODING, value);
 }
 
 function encodeContactProofEvidence(value) {
@@ -84,14 +120,23 @@ export {
   CONTACT_PROOF_RESPONSE_ENCODING,
   CONTACT_PROTOCOL_FAMILY,
   CONTACT_PROTOCOL_SCHEMA,
+  PARTICIPANT_CAPABILITIES_DISPATCH_COMMAND,
+  PARTICIPANT_CAPABILITIES_METHOD,
+  PARTICIPANT_CAPABILITIES_REQUEST_ENCODING,
+  PARTICIPANT_CAPABILITIES_RESPONSE_ENCODING,
   createContactProofCapabilityDescriptor,
   decodeContactProofEvidence,
   decodeContactProofRequest,
   decodeContactProofResponse,
+  decodeParticipantCapabilitiesRequest,
+  decodeParticipantCapabilitiesResponse,
   dispatchContactProofRequest,
+  dispatchParticipantCapabilitiesRequest,
   dispatchVersion,
   encodeContactProofEvidence,
   encodeContactProofRequest,
   encodeContactProofResponse,
+  encodeParticipantCapabilitiesRequest,
+  encodeParticipantCapabilitiesResponse,
   protocolVersion
 };

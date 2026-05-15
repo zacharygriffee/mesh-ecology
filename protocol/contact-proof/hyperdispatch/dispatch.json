@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "offset": 0,
   "schema": [
     {
@@ -7,6 +7,12 @@
       "name": "@mesh-contact/capability-echo",
       "requestType": "@mesh-contact/contact-proof-request",
       "version": 1
+    },
+    {
+      "id": 1,
+      "name": "@mesh-contact/participant-capabilities-get",
+      "requestType": "@mesh-contact/participant-capabilities-request",
+      "version": 2
     }
   ]
 }

@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "schema": [
     {
       "name": "transport-descriptor",
@@ -316,6 +316,11 @@
           "name": "capabilityDescriptor",
           "type": "@mesh-contact/capability-descriptor",
           "version": 2
+        },
+        {
+          "name": "capabilityAdvertisement",
+          "type": "@mesh-contact/participant-capabilities-response",
+          "version": 3
         }
       ]
     },
@@ -410,6 +415,71 @@
           "name": "participantContact",
           "type": "bool",
           "version": 2
+        }
+      ]
+    },
+    {
+      "name": "participant-capabilities-request",
+      "namespace": "mesh-contact",
+      "compact": false,
+      "flagsPosition": -1,
+      "fields": [
+        {
+          "name": "requestId",
+          "required": true,
+          "type": "string",
+          "version": 3
+        },
+        {
+          "name": "participant",
+          "required": true,
+          "type": "string",
+          "version": 3
+        }
+      ]
+    },
+    {
+      "name": "participant-capabilities-response",
+      "namespace": "mesh-contact",
+      "compact": false,
+      "flagsPosition": -1,
+      "fields": [
+        {
+          "name": "responseId",
+          "required": true,
+          "type": "string",
+          "version": 3
+        },
+        {
+          "name": "requestId",
+          "required": true,
+          "type": "string",
+          "version": 3
+        },
+        {
+          "name": "participant",
+          "required": true,
+          "type": "string",
+          "version": 3
+        },
+        {
+          "name": "protocolFamily",
+          "required": true,
+          "type": "string",
+          "version": 3
+        },
+        {
+          "name": "protocolSchema",
+          "required": true,
+          "type": "string",
+          "version": 3
+        },
+        {
+          "name": "capabilities",
+          "required": true,
+          "array": true,
+          "type": "@mesh-contact/capability-descriptor",
+          "version": 3
         }
       ]
     }

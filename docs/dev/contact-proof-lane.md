@@ -42,14 +42,19 @@ The contact proof lane now has a narrow version-safe protocol seed:
 - `dispatchCommand: "@mesh-contact/capability-echo"`
 - `capabilityDescriptor.capability: "contact-proof"`
 - `capabilityDescriptor.proofScope: "bounded_direct_participant_contact"`
-- `protocolSchemaVersion: 2`
-- `dispatchVersion: 2`
+- `capabilitiesRequestEncoding: "@mesh-contact/participant-capabilities-request"`
+- `capabilitiesResponseEncoding: "@mesh-contact/participant-capabilities-response"`
+- `capabilitiesDispatchCommand: "@mesh-contact/participant-capabilities-get"`
+- `protocolSchemaVersion: 3`
+- `dispatchVersion: 3`
 
 The request/response payloads are encoded through generated Hyperschema
 encodings, the capability descriptor is an encoded Hyperschema object, and the
-bounded capability echo route is registered through Hyperdispatch. The exported
-evidence remains JSON so adjacent repos can inspect it without importing
-mesh-v0-2 runtime code.
+bounded capability echo route is registered through Hyperdispatch. The lane also
+includes a second bounded route, `participant.capabilities.get`, so a participant
+can advertise the capability descriptor through the same Protomux RPC seam
+instead of relying only on static evidence fields. The exported evidence remains
+JSON so adjacent repos can inspect it without importing mesh-v0-2 runtime code.
 
 ## Layer Defaults
 
@@ -77,8 +82,11 @@ participant-contact capability across a HyperDHT direct-peer seam.
   "requestEncoding": "@mesh-contact/contact-proof-request",
   "responseEncoding": "@mesh-contact/contact-proof-response",
   "dispatchCommand": "@mesh-contact/capability-echo",
-  "protocolSchemaVersion": 2,
-  "dispatchVersion": 2,
+  "capabilitiesRequestEncoding": "@mesh-contact/participant-capabilities-request",
+  "capabilitiesResponseEncoding": "@mesh-contact/participant-capabilities-response",
+  "capabilitiesDispatchCommand": "@mesh-contact/participant-capabilities-get",
+  "protocolSchemaVersion": 3,
+  "dispatchVersion": 3,
   "proofKind": "mesh_contact_direct_peer_lab",
   "transportKind": "protomux-rpc",
   "contactSeam": "hyperdht_direct_peer",
@@ -97,6 +105,20 @@ participant-contact capability across a HyperDHT direct-peer seam.
     "meshLayerDefault": false,
     "discoveryRequired": false,
     "participantContact": true
+  },
+  "capabilityAdvertisement": {
+    "responseId": "mesh-capabilities-response:<id>",
+    "requestId": "mesh-capabilities-request:<id>",
+    "participant": "mesh-contact-host",
+    "protocolFamily": "mesh-contact-proof",
+    "protocolSchema": "mesh-v0-2/contact-proof/direct-peer/v1",
+    "capabilities": [
+      {
+        "capability": "contact-proof",
+        "methodName": "capability.echo",
+        "proofScope": "bounded_direct_participant_contact"
+      }
+    ]
   },
   "selectedTransport": {
     "transportKind": "protomux-rpc",
@@ -124,7 +146,9 @@ participant-contact capability across a HyperDHT direct-peer seam.
 2. Expose one Protomux RPC method with a fixed bounded request and response.
 3. Start a client participant with the host public key.
 4. Client opens direct contact and calls the method.
-5. Record contact evidence:
+5. Client calls `participant.capabilities.get` and receives a bounded
+   capability advertisement.
+6. Record contact evidence:
    - selected transport kind;
    - contact seam;
    - host public key;
@@ -133,7 +157,7 @@ participant-contact capability across a HyperDHT direct-peer seam.
    - response id;
    - elapsed time;
    - failure class when contact fails.
-6. Close all DHT/RPC/bootstrap resources deterministically.
+7. Close all DHT/RPC/bootstrap resources deterministically.
 
 The method is intentionally small: `capability.echo`. It does not create jobs,
 publish PUBs, emit RATs, install
