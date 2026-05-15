@@ -31,12 +31,32 @@ The current lab uses an isolated local HyperDHT bootstrapper so the test proves
 direct peer contact through a HyperDHT-shaped seam without depending on public
 DHT health, public discovery, HTTP, SSH, or inbound port configuration.
 
+## Protocol Seed
+
+The contact proof lane now has a narrow version-safe protocol seed:
+
+- `protocolFamily: "mesh-contact-proof"`
+- `protocolSchema: "mesh-v0-2/contact-proof/direct-peer/v1"`
+- `requestEncoding: "@mesh-contact/contact-proof-request"`
+- `responseEncoding: "@mesh-contact/contact-proof-response"`
+- `dispatchCommand: "@mesh-contact/capability-echo"`
+
+The request/response payloads are encoded through generated Hyperschema
+encodings, and the bounded capability echo route is registered through
+Hyperdispatch. The exported evidence remains JSON so adjacent repos can inspect
+it without importing mesh-v0-2 runtime code.
+
 ## Evidence Shape
 
 ```json
 {
   "artifactKind": "mesh_contact_proof_evidence",
   "schema": "mesh-v0-2/contact-proof/direct-peer/v1",
+  "protocolFamily": "mesh-contact-proof",
+  "protocolSchema": "mesh-v0-2/contact-proof/direct-peer/v1",
+  "requestEncoding": "@mesh-contact/contact-proof-request",
+  "responseEncoding": "@mesh-contact/contact-proof-response",
+  "dispatchCommand": "@mesh-contact/capability-echo",
   "proofKind": "mesh_contact_direct_peer_lab",
   "transportKind": "protomux-rpc",
   "contactSeam": "hyperdht_direct_peer",

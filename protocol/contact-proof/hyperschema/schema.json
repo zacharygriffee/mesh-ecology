@@ -1,0 +1,318 @@
+{
+  "version": 1,
+  "schema": [
+    {
+      "name": "transport-descriptor",
+      "namespace": "mesh-contact",
+      "compact": false,
+      "flagsPosition": 4,
+      "fields": [
+        {
+          "name": "transportKind",
+          "required": true,
+          "type": "string",
+          "version": 1
+        },
+        {
+          "name": "contactSeam",
+          "required": true,
+          "type": "string",
+          "version": 1
+        },
+        {
+          "name": "transportRole",
+          "required": true,
+          "type": "string",
+          "version": 1
+        },
+        {
+          "name": "scope",
+          "required": true,
+          "type": "string",
+          "version": 1
+        },
+        {
+          "name": "scaffoldTransport",
+          "type": "bool",
+          "version": 1
+        },
+        {
+          "name": "compatibilityAlias",
+          "type": "bool",
+          "version": 1
+        },
+        {
+          "name": "productionPreferred",
+          "type": "bool",
+          "version": 1
+        },
+        {
+          "name": "operatorSupplied",
+          "type": "bool",
+          "version": 1
+        },
+        {
+          "name": "portExposureRequired",
+          "type": "bool",
+          "version": 1
+        },
+        {
+          "name": "participantContact",
+          "type": "bool",
+          "version": 1
+        }
+      ]
+    },
+    {
+      "name": "readiness-evidence",
+      "namespace": "mesh-contact",
+      "compact": false,
+      "flagsPosition": 1,
+      "fields": [
+        {
+          "name": "readinessScope",
+          "required": true,
+          "type": "string",
+          "version": 1
+        },
+        {
+          "name": "distributedReadinessClaimed",
+          "type": "bool",
+          "version": 1
+        },
+        {
+          "name": "serviceBackendClaimed",
+          "type": "bool",
+          "version": 1
+        }
+      ]
+    },
+    {
+      "name": "contact-proof-request",
+      "namespace": "mesh-contact",
+      "compact": false,
+      "flagsPosition": -1,
+      "fields": [
+        {
+          "name": "requestId",
+          "required": true,
+          "type": "string",
+          "version": 1
+        },
+        {
+          "name": "participant",
+          "required": true,
+          "type": "string",
+          "version": 1
+        },
+        {
+          "name": "capability",
+          "required": true,
+          "type": "string",
+          "version": 1
+        },
+        {
+          "name": "input",
+          "required": true,
+          "type": "string",
+          "version": 1
+        }
+      ]
+    },
+    {
+      "name": "contact-proof-response",
+      "namespace": "mesh-contact",
+      "compact": false,
+      "flagsPosition": 5,
+      "fields": [
+        {
+          "name": "responseId",
+          "required": true,
+          "type": "string",
+          "version": 1
+        },
+        {
+          "name": "requestId",
+          "required": true,
+          "type": "string",
+          "version": 1
+        },
+        {
+          "name": "participant",
+          "required": true,
+          "type": "string",
+          "version": 1
+        },
+        {
+          "name": "capability",
+          "required": true,
+          "type": "string",
+          "version": 1
+        },
+        {
+          "name": "received",
+          "required": true,
+          "type": "string",
+          "version": 1
+        },
+        {
+          "name": "ok",
+          "type": "bool",
+          "version": 1
+        }
+      ]
+    },
+    {
+      "name": "contact-proof-evidence",
+      "namespace": "mesh-contact",
+      "compact": false,
+      "flagsPosition": 19,
+      "fields": [
+        {
+          "name": "artifactKind",
+          "required": true,
+          "type": "string",
+          "version": 1
+        },
+        {
+          "name": "schema",
+          "required": true,
+          "type": "string",
+          "version": 1
+        },
+        {
+          "name": "protocolFamily",
+          "required": true,
+          "type": "string",
+          "version": 1
+        },
+        {
+          "name": "protocolSchema",
+          "required": true,
+          "type": "string",
+          "version": 1
+        },
+        {
+          "name": "requestEncoding",
+          "required": true,
+          "type": "string",
+          "version": 1
+        },
+        {
+          "name": "responseEncoding",
+          "required": true,
+          "type": "string",
+          "version": 1
+        },
+        {
+          "name": "dispatchCommand",
+          "required": true,
+          "type": "string",
+          "version": 1
+        },
+        {
+          "name": "proofKind",
+          "required": true,
+          "type": "string",
+          "version": 1
+        },
+        {
+          "name": "transportKind",
+          "required": true,
+          "type": "string",
+          "version": 1
+        },
+        {
+          "name": "contactSeam",
+          "required": true,
+          "type": "string",
+          "version": 1
+        },
+        {
+          "name": "participantA",
+          "required": true,
+          "type": "string",
+          "version": 1
+        },
+        {
+          "name": "participantB",
+          "required": true,
+          "type": "string",
+          "version": 1
+        },
+        {
+          "name": "operation",
+          "required": true,
+          "type": "string",
+          "version": 1
+        },
+        {
+          "name": "methodName",
+          "required": true,
+          "type": "string",
+          "version": 1
+        },
+        {
+          "name": "requestId",
+          "required": true,
+          "type": "string",
+          "version": 1
+        },
+        {
+          "name": "responseId",
+          "required": true,
+          "type": "string",
+          "version": 1
+        },
+        {
+          "name": "hostPublicKey",
+          "required": true,
+          "type": "string",
+          "version": 1
+        },
+        {
+          "name": "selectedTransport",
+          "required": true,
+          "type": "@mesh-contact/transport-descriptor",
+          "version": 1
+        },
+        {
+          "name": "readinessEvidence",
+          "required": true,
+          "type": "@mesh-contact/readiness-evidence",
+          "version": 1
+        },
+        {
+          "name": "contactAttempted",
+          "type": "bool",
+          "version": 1
+        },
+        {
+          "name": "contactSucceeded",
+          "type": "bool",
+          "version": 1
+        },
+        {
+          "name": "distributedReadinessClaimed",
+          "type": "bool",
+          "version": 1
+        },
+        {
+          "name": "elapsedMs",
+          "type": "uint",
+          "version": 1
+        },
+        {
+          "name": "failureClass",
+          "type": "string",
+          "version": 1
+        },
+        {
+          "name": "failureMessage",
+          "type": "string",
+          "version": 1
+        }
+      ]
+    }
+  ]
+}

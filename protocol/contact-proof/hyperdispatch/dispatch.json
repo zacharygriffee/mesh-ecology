@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "offset": 0,
+  "schema": [
+    {
+      "id": 0,
+      "name": "@mesh-contact/capability-echo",
+      "requestType": "@mesh-contact/contact-proof-request",
+      "version": 1
+    }
+  ]
+}

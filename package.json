@@ -7,6 +7,7 @@
   "license": "MIT",
   "scripts": {
     "contact:proof": "node scripts/contact-proof-direct-peer.js",
+    "protocol:generate": "node scripts/generate-contact-protocol.js",
     "docs:check": "node scripts/docs-check.mjs",
     "test": "node test/run-files.js",
     "caps:check": "node scripts/check-generic-caps.js",
@@ -26,6 +27,8 @@
     "hypercore-crypto": "^3.6.1",
     "hypercore-id-encoding": "^1.3.0",
     "hyperdht": "6.29.0",
+    "hyperdispatch": "^1.6.0",
+    "hyperschema": "1.19.0",
     "hyperswarm": "^4.17.0",
     "localdrive": "^2.2.0",
     "protomux-rpc": "^1.10.0"
@@ -33,8 +36,5 @@
   "devDependencies": {
     "brittle": "^3.19.1",
     "fakeswarm": "^0.2.1"
-  },
-  "overrides": {
-    "hyperschema": "1.19.0"
   }
 }

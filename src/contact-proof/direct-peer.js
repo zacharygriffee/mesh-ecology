@@ -2,6 +2,19 @@ import crypto from "crypto";
 import net from "net";
 import DHT from "hyperdht";
 import ProtomuxRPC from "protomux-rpc";
+import {
+  CONTACT_PROOF_DISPATCH_COMMAND,
+  CONTACT_PROOF_REQUEST_ENCODING,
+  CONTACT_PROOF_RESPONSE_ENCODING,
+  CONTACT_PROTOCOL_FAMILY,
+  CONTACT_PROTOCOL_SCHEMA,
+  decodeContactProofResponse,
+  dispatchContactProofRequest,
+  dispatchVersion,
+  encodeContactProofRequest,
+  encodeContactProofResponse,
+  protocolVersion
+} from "./protocol.js";
 
 const CONTACT_PROOF_SCHEMA = "mesh-v0-2/contact-proof/direct-peer/v1";
 const CONTACT_PROOF_ARTIFACT_KIND = "mesh_contact_proof_evidence";
@@ -36,16 +49,16 @@ async function runDirectContactProof({
       serverRpcs.add(rpc);
       socket.once("close", () => serverRpcs.delete(rpc));
       socket.once("error", () => serverRpcs.delete(rpc));
-      rpc.respond(CONTACT_PROOF_METHOD, (raw) => {
-        const request = parseJsonBuffer(raw);
-        return jsonBuffer({
+      rpc.respond(CONTACT_PROOF_METHOD, async (raw) => {
+        const response = await dispatchContactProofRequest(raw, (request) => ({
           responseId,
           requestId: request.requestId,
           participant: "mesh-contact-host",
           capability: request.capability,
           received: request.input,
           ok: true
-        });
+        }));
+        return encodeContactProofResponse(response);
       });
     });
 
@@ -57,7 +70,7 @@ async function runDirectContactProof({
     const rawResponse = await withTimeout(
       clientRpc.request(
         CONTACT_PROOF_METHOD,
-        jsonBuffer({
+        encodeContactProofRequest({
           requestId,
           participant: "mesh-contact-client",
           ...requestPayload
@@ -67,7 +80,7 @@ async function runDirectContactProof({
       timeoutMs,
       "rpc-request"
     );
-    responsePayload = parseJsonBuffer(rawResponse);
+    responsePayload = decodeContactProofResponse(rawResponse);
     contactSucceeded = responsePayload?.ok === true && responsePayload?.requestId === requestId;
     if (!contactSucceeded) {
       failureClass = "semantic_response_mismatch";
@@ -83,6 +96,13 @@ async function runDirectContactProof({
   return {
     artifactKind: CONTACT_PROOF_ARTIFACT_KIND,
     schema: CONTACT_PROOF_SCHEMA,
+    protocolFamily: CONTACT_PROTOCOL_FAMILY,
+    protocolSchema: CONTACT_PROTOCOL_SCHEMA,
+    protocolSchemaVersion: protocolVersion,
+    dispatchVersion,
+    requestEncoding: CONTACT_PROOF_REQUEST_ENCODING,
+    responseEncoding: CONTACT_PROOF_RESPONSE_ENCODING,
+    dispatchCommand: CONTACT_PROOF_DISPATCH_COMMAND,
     proofKind: "mesh_contact_direct_peer_lab",
     transportKind: "protomux-rpc",
     contactSeam: "hyperdht_direct_peer",
@@ -100,7 +120,10 @@ async function runDirectContactProof({
       scope: "isolated_local_hyperdht",
       scaffoldTransport: false,
       compatibilityAlias: false,
-      productionPreferred: false
+      productionPreferred: false,
+      operatorSupplied: false,
+      portExposureRequired: false,
+      participantContact: true
     },
     readinessEvidence: {
       readinessScope: "direct_peer_contact",
@@ -115,14 +138,6 @@ async function runDirectContactProof({
     failureClass,
     failureMessage
   };
-}
-
-function parseJsonBuffer(raw) {
-  return JSON.parse(Buffer.from(raw).toString("utf8"));
-}
-
-function jsonBuffer(value) {
-  return Buffer.from(JSON.stringify(value));
 }
 
 function classifyContactFailure(err) {
@@ -193,7 +208,12 @@ async function closeDirectContactResources({ clientRpc, clientSocket, serverRpcs
 
 export {
   CONTACT_PROOF_ARTIFACT_KIND,
+  CONTACT_PROOF_DISPATCH_COMMAND,
   CONTACT_PROOF_METHOD,
+  CONTACT_PROOF_REQUEST_ENCODING,
+  CONTACT_PROOF_RESPONSE_ENCODING,
   CONTACT_PROOF_SCHEMA,
+  CONTACT_PROTOCOL_FAMILY,
+  CONTACT_PROTOCOL_SCHEMA,
   runDirectContactProof
 };

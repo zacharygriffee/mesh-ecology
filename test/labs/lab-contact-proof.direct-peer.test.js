@@ -1,8 +1,13 @@
 import test from "brittle";
 import {
   CONTACT_PROOF_ARTIFACT_KIND,
+  CONTACT_PROOF_DISPATCH_COMMAND,
   CONTACT_PROOF_METHOD,
+  CONTACT_PROOF_REQUEST_ENCODING,
+  CONTACT_PROOF_RESPONSE_ENCODING,
   CONTACT_PROOF_SCHEMA,
+  CONTACT_PROTOCOL_FAMILY,
+  CONTACT_PROTOCOL_SCHEMA,
   runDirectContactProof
 } from "../_helpers/direct-contact-proof.js";
 
@@ -11,6 +16,13 @@ test("lab-contact-proof.direct-peer proves bounded Protomux RPC over HyperDHT di
 
   t.is(evidence.artifactKind, CONTACT_PROOF_ARTIFACT_KIND);
   t.is(evidence.schema, CONTACT_PROOF_SCHEMA);
+  t.is(evidence.protocolFamily, CONTACT_PROTOCOL_FAMILY);
+  t.is(evidence.protocolSchema, CONTACT_PROTOCOL_SCHEMA);
+  t.is(evidence.requestEncoding, CONTACT_PROOF_REQUEST_ENCODING);
+  t.is(evidence.responseEncoding, CONTACT_PROOF_RESPONSE_ENCODING);
+  t.is(evidence.dispatchCommand, CONTACT_PROOF_DISPATCH_COMMAND);
+  t.is(evidence.protocolSchemaVersion, 1);
+  t.is(evidence.dispatchVersion, 1);
   t.is(evidence.proofKind, "mesh_contact_direct_peer_lab");
   t.is(evidence.transportKind, "protomux-rpc");
   t.is(evidence.contactSeam, "hyperdht_direct_peer");
@@ -22,6 +34,9 @@ test("lab-contact-proof.direct-peer proves bounded Protomux RPC over HyperDHT di
   t.is(evidence.selectedTransport.scaffoldTransport, false);
   t.is(evidence.selectedTransport.compatibilityAlias, false);
   t.is(evidence.selectedTransport.productionPreferred, false);
+  t.is(evidence.selectedTransport.operatorSupplied, false);
+  t.is(evidence.selectedTransport.portExposureRequired, false);
+  t.is(evidence.selectedTransport.participantContact, true);
   t.is(evidence.readinessEvidence.readinessScope, "direct_peer_contact");
   t.is(evidence.readinessEvidence.distributedReadinessClaimed, false);
   t.is(evidence.distributedReadinessClaimed, false);
