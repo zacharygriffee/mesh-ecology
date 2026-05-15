@@ -20,6 +20,21 @@ import {
 test("lab-contact-proof.direct-peer proves bounded Protomux RPC over HyperDHT direct peer", { timeout: 20_000 }, async (t) => {
   const evidence = await runDirectContactProof({ timeoutMs: 10_000 });
 
+  t.ok(/^mesh-contact-proof:[a-f0-9]{16}$/.test(evidence.proofId));
+  t.is(evidence.payloadHashAlgorithm, "sha256-canonical-json");
+  t.ok(/^sha256:[a-f0-9]{64}$/.test(evidence.payloadHash));
+  t.ok(/^mesh-contact-proof-entry:[a-f0-9]{16}$/.test(evidence.appendLogRefs.entryId));
+  t.is(evidence.appendLogRefs.sourceRepo, "mesh-v0-2");
+  t.is(evidence.appendLogRefs.sourceArtifactKind, CONTACT_PROOF_ARTIFACT_KIND);
+  t.is(evidence.appendLogRefs.sourceSchema, CONTACT_PROOF_SCHEMA);
+  t.is(evidence.appendLogRefs.proofKind, "mesh_contact_direct_peer_lab");
+  t.is(evidence.appendLogRefs.requestRef, evidence.requestId);
+  t.is(evidence.appendLogRefs.responseRef, evidence.responseId);
+  t.is(evidence.appendLogRefs.capabilityAdvertisementRef, evidence.capabilityAdvertisement.responseId);
+  t.is(evidence.appendLogRefs.selectedTransportRef, "protomux-rpc:hyperdht_direct_peer");
+  t.alike(evidence.appendLogRefs.parentRefs, []);
+  t.is(evidence.appendLogRefs.truthClaimed, false);
+  t.is(evidence.appendLogRefs.completionClaimed, false);
   t.is(evidence.artifactKind, CONTACT_PROOF_ARTIFACT_KIND);
   t.is(evidence.schema, CONTACT_PROOF_SCHEMA);
   t.is(evidence.protocolFamily, CONTACT_PROTOCOL_FAMILY);

@@ -140,7 +140,7 @@ async function runDirectContactProof({
     await closeDirectContactResources({ clientRpc, clientSocket, serverRpcs, server, hostNode, clientNode, bootstrap });
   }
 
-  return {
+  const evidence = {
     artifactKind: CONTACT_PROOF_ARTIFACT_KIND,
     schema: CONTACT_PROOF_SCHEMA,
     protocolFamily: CONTACT_PROTOCOL_FAMILY,
@@ -190,6 +190,44 @@ async function runDirectContactProof({
     failureClass,
     failureMessage
   };
+  return withAppendLogRefs(evidence);
+}
+
+function withAppendLogRefs(evidence) {
+  const payloadHash = sha256Canonical(evidence);
+  const shortHash = payloadHash.slice(0, 16);
+  return {
+    proofId: `mesh-contact-proof:${shortHash}`,
+    payloadHashAlgorithm: "sha256-canonical-json",
+    payloadHash: `sha256:${payloadHash}`,
+    appendLogRefs: {
+      entryId: `mesh-contact-proof-entry:${shortHash}`,
+      sourceRepo: "mesh-v0-2",
+      sourceArtifactKind: CONTACT_PROOF_ARTIFACT_KIND,
+      sourceSchema: CONTACT_PROOF_SCHEMA,
+      proofKind: evidence.proofKind,
+      requestRef: evidence.requestId,
+      responseRef: evidence.responseId,
+      capabilityAdvertisementRef: evidence.capabilityAdvertisement?.responseId ?? null,
+      selectedTransportRef: `${evidence.selectedTransport.transportKind}:${evidence.selectedTransport.contactSeam}`,
+      parentRefs: [],
+      truthClaimed: false,
+      completionClaimed: false
+    },
+    ...evidence
+  };
+}
+
+function sha256Canonical(value) {
+  return crypto.createHash("sha256").update(canonicalJson(value)).digest("hex");
+}
+
+function canonicalJson(value) {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(",")}}`;
+  }
+  return JSON.stringify(value);
 }
 
 function classifyContactFailure(err) {

@@ -77,6 +77,18 @@ participant-contact capability across a HyperDHT direct-peer seam.
 {
   "artifactKind": "mesh_contact_proof_evidence",
   "schema": "mesh-v0-2/contact-proof/direct-peer/v1",
+  "proofId": "mesh-contact-proof:<payload-hash-prefix>",
+  "payloadHashAlgorithm": "sha256-canonical-json",
+  "payloadHash": "sha256:<canonical-proof-payload-hash>",
+  "appendLogRefs": {
+    "entryId": "mesh-contact-proof-entry:<payload-hash-prefix>",
+    "requestRef": "mesh-contact-request:<id>",
+    "responseRef": "mesh-contact-response:<id>",
+    "capabilityAdvertisementRef": "mesh-capabilities-response:<id>",
+    "selectedTransportRef": "protomux-rpc:hyperdht_direct_peer",
+    "truthClaimed": false,
+    "completionClaimed": false
+  },
   "protocolFamily": "mesh-contact-proof",
   "protocolSchema": "mesh-v0-2/contact-proof/direct-peer/v1",
   "requestEncoding": "@mesh-contact/contact-proof-request",
