@@ -16,6 +16,29 @@ const CONTACT_PROOF_REQUEST_ENCODING = "@mesh-contact/contact-proof-request";
 const CONTACT_PROOF_RESPONSE_ENCODING = "@mesh-contact/contact-proof-response";
 const CONTACT_PROOF_EVIDENCE_ENCODING = "@mesh-contact/contact-proof-evidence";
 const CONTACT_PROOF_DISPATCH_COMMAND = "@mesh-contact/capability-echo";
+const CONTACT_PROOF_CAPABILITY = "contact-proof";
+const CONTACT_PROOF_METHOD = "capability.echo";
+const CONTACT_PROOF_CAPABILITY_SCOPE = "bounded_direct_participant_contact";
+
+function createContactProofCapabilityDescriptor() {
+  return {
+    capability: CONTACT_PROOF_CAPABILITY,
+    methodName: CONTACT_PROOF_METHOD,
+    dispatchCommand: CONTACT_PROOF_DISPATCH_COMMAND,
+    requestEncoding: CONTACT_PROOF_REQUEST_ENCODING,
+    responseEncoding: CONTACT_PROOF_RESPONSE_ENCODING,
+    protocolFamily: CONTACT_PROTOCOL_FAMILY,
+    protocolSchema: CONTACT_PROTOCOL_SCHEMA,
+    ownerRepo: "mesh-v0-2",
+    proofScope: CONTACT_PROOF_CAPABILITY_SCOPE,
+    transportKind: "protomux-rpc",
+    contactSeam: "hyperdht_direct_peer",
+    localLayerDefault: true,
+    meshLayerDefault: false,
+    discoveryRequired: false,
+    participantContact: true
+  };
+}
 
 function encodeContactProofRequest(value) {
   return encodeDispatchMessage(CONTACT_PROOF_DISPATCH_COMMAND, value);
@@ -52,12 +75,16 @@ function decodeContactProofEvidence(value) {
 }
 
 export {
+  CONTACT_PROOF_CAPABILITY,
+  CONTACT_PROOF_CAPABILITY_SCOPE,
   CONTACT_PROOF_DISPATCH_COMMAND,
   CONTACT_PROOF_EVIDENCE_ENCODING,
+  CONTACT_PROOF_METHOD,
   CONTACT_PROOF_REQUEST_ENCODING,
   CONTACT_PROOF_RESPONSE_ENCODING,
   CONTACT_PROTOCOL_FAMILY,
   CONTACT_PROTOCOL_SCHEMA,
+  createContactProofCapabilityDescriptor,
   decodeContactProofEvidence,
   decodeContactProofRequest,
   decodeContactProofResponse,

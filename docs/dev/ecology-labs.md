@@ -37,6 +37,20 @@ Use the weakest lane that proves the claim. Escalate to Hyperswarm/HyperDHT/prot
 
 For the narrow direct contact lane, see [Contact Proof Lane](./contact-proof-lane.md).
 
+Layer defaults:
+- Local-layer contact should prefer HyperDHT direct peer plus Protomux RPC when
+  the target participant key is known. This is the better default for
+  operator-owned devices because it avoids teaching LAN HTTP, SSH, or inbound
+  ports as participant seams.
+- Mesh-layer ecology should prefer Hyperswarm discovery for open concern and
+  discovery surfaces. Direct HyperDHT contact can follow discovery/claim
+  exchange, but it is not a replacement for plural discovery participation.
+
+Test design must reflect that split. Direct-peer tests can assert bounded
+contact more deterministically. Hyperswarm tests must preserve ecological
+uncertainty: readiness windows, bounded absence, plural observations, and
+transport flake classification are part of the model rather than noise to hide.
+
 ### Quick chooser (anti-churn)
 
 - If the behavior does not require replication/transport, write a unit test.

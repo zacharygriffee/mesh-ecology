@@ -33,6 +33,11 @@ test("contact proof command writes mesh_contact_proof_evidence artifact", async 
     t.is(evidence.artifactKind, "mesh_contact_proof_evidence");
     t.is(evidence.schema, "mesh-v0-2/contact-proof/direct-peer/v1");
     t.is(evidence.proofKind, "mesh_contact_direct_peer_lab");
+    t.is(evidence.capabilityDescriptor.capability, "contact-proof");
+    t.is(evidence.capabilityDescriptor.proofScope, "bounded_direct_participant_contact");
+    t.is(evidence.capabilityDescriptor.localLayerDefault, true);
+    t.is(evidence.capabilityDescriptor.meshLayerDefault, false);
+    t.is(evidence.capabilityDescriptor.discoveryRequired, false);
     t.is(evidence.selectedTransport.transportKind, "protomux-rpc");
     t.is(evidence.selectedTransport.contactSeam, "hyperdht_direct_peer");
     t.is(evidence.readinessEvidence.readinessScope, "direct_peer_contact");
@@ -53,6 +58,7 @@ test("contact proof command can emit JSON to stdout", async (t) => {
 
   t.is(code, 0, stderr.text());
   t.is(evidence.artifactKind, "mesh_contact_proof_evidence");
+  t.is(evidence.capabilityDescriptor.ownerRepo, "mesh-v0-2");
   t.is(evidence.selectedTransport.scope, "isolated_local_hyperdht");
   t.is(evidence.distributedReadinessClaimed, false);
 });

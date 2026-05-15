@@ -30,6 +30,18 @@ No single lane should be read as decentralized readiness. A decentralized-readin
 
 The direct participant contact lane is tracked in [Contact Proof Lane](./contact-proof-lane.md).
 
+### Layered Transport Defaults
+
+Use HyperDHT direct peer plus Protomux RPC as the preferred local-layer contact
+proof when a participant key is known. Use Hyperswarm as the preferred
+mesh-layer discovery lane when the claim is ecology participation, open
+surface discovery, or plural observation.
+
+Tests should not normalize one lane into the other. HyperDHT direct-peer labs
+may prove bounded contact without public discovery. Hyperswarm labs must keep
+discovery uncertainty visible through observation budgets, bounded absence, and
+flake classification.
+
 ### Flake Classification
 
 `runLabTwoTransport` returns:

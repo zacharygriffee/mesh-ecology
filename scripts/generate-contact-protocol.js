@@ -33,6 +33,27 @@ contact.register({
 });
 
 contact.register({
+  name: "capability-descriptor",
+  fields: [
+    { name: "capability", type: "string", required: true },
+    { name: "methodName", type: "string", required: true },
+    { name: "dispatchCommand", type: "string", required: true },
+    { name: "requestEncoding", type: "string", required: true },
+    { name: "responseEncoding", type: "string", required: true },
+    { name: "protocolFamily", type: "string", required: true },
+    { name: "protocolSchema", type: "string", required: true },
+    { name: "ownerRepo", type: "string", required: true },
+    { name: "proofScope", type: "string", required: true },
+    { name: "transportKind", type: "string", required: true },
+    { name: "contactSeam", type: "string", required: true },
+    { name: "localLayerDefault", type: "bool" },
+    { name: "meshLayerDefault", type: "bool" },
+    { name: "discoveryRequired", type: "bool" },
+    { name: "participantContact", type: "bool" }
+  ]
+});
+
+contact.register({
   name: "contact-proof-request",
   fields: [
     { name: "requestId", type: "string", required: true },
@@ -81,7 +102,8 @@ contact.register({
     { name: "distributedReadinessClaimed", type: "bool" },
     { name: "elapsedMs", type: "uint" },
     { name: "failureClass", type: "string" },
-    { name: "failureMessage", type: "string" }
+    { name: "failureMessage", type: "string" },
+    { name: "capabilityDescriptor", type: "@mesh-contact/capability-descriptor" }
   ]
 });
 

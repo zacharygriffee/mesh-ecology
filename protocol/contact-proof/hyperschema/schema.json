@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "schema": [
     {
       "name": "transport-descriptor",
@@ -311,6 +311,105 @@
           "name": "failureMessage",
           "type": "string",
           "version": 1
+        },
+        {
+          "name": "capabilityDescriptor",
+          "type": "@mesh-contact/capability-descriptor",
+          "version": 2
+        }
+      ]
+    },
+    {
+      "name": "capability-descriptor",
+      "namespace": "mesh-contact",
+      "compact": false,
+      "flagsPosition": 11,
+      "fields": [
+        {
+          "name": "capability",
+          "required": true,
+          "type": "string",
+          "version": 2
+        },
+        {
+          "name": "methodName",
+          "required": true,
+          "type": "string",
+          "version": 2
+        },
+        {
+          "name": "dispatchCommand",
+          "required": true,
+          "type": "string",
+          "version": 2
+        },
+        {
+          "name": "requestEncoding",
+          "required": true,
+          "type": "string",
+          "version": 2
+        },
+        {
+          "name": "responseEncoding",
+          "required": true,
+          "type": "string",
+          "version": 2
+        },
+        {
+          "name": "protocolFamily",
+          "required": true,
+          "type": "string",
+          "version": 2
+        },
+        {
+          "name": "protocolSchema",
+          "required": true,
+          "type": "string",
+          "version": 2
+        },
+        {
+          "name": "ownerRepo",
+          "required": true,
+          "type": "string",
+          "version": 2
+        },
+        {
+          "name": "proofScope",
+          "required": true,
+          "type": "string",
+          "version": 2
+        },
+        {
+          "name": "transportKind",
+          "required": true,
+          "type": "string",
+          "version": 2
+        },
+        {
+          "name": "contactSeam",
+          "required": true,
+          "type": "string",
+          "version": 2
+        },
+        {
+          "name": "localLayerDefault",
+          "type": "bool",
+          "version": 2
+        },
+        {
+          "name": "meshLayerDefault",
+          "type": "bool",
+          "version": 2
+        },
+        {
+          "name": "discoveryRequired",
+          "type": "bool",
+          "version": 2
+        },
+        {
+          "name": "participantContact",
+          "type": "bool",
+          "version": 2
         }
       ]
     }

@@ -3,11 +3,15 @@ import net from "net";
 import DHT from "hyperdht";
 import ProtomuxRPC from "protomux-rpc";
 import {
+  CONTACT_PROOF_CAPABILITY,
+  CONTACT_PROOF_CAPABILITY_SCOPE,
   CONTACT_PROOF_DISPATCH_COMMAND,
+  CONTACT_PROOF_METHOD,
   CONTACT_PROOF_REQUEST_ENCODING,
   CONTACT_PROOF_RESPONSE_ENCODING,
   CONTACT_PROTOCOL_FAMILY,
   CONTACT_PROTOCOL_SCHEMA,
+  createContactProofCapabilityDescriptor,
   decodeContactProofResponse,
   dispatchContactProofRequest,
   dispatchVersion,
@@ -18,10 +22,9 @@ import {
 
 const CONTACT_PROOF_SCHEMA = "mesh-v0-2/contact-proof/direct-peer/v1";
 const CONTACT_PROOF_ARTIFACT_KIND = "mesh_contact_proof_evidence";
-const CONTACT_PROOF_METHOD = "capability.echo";
 
 async function runDirectContactProof({
-  requestPayload = { capability: "contact-proof", input: "ping" },
+  requestPayload = { capability: CONTACT_PROOF_CAPABILITY, input: "ping" },
   timeoutMs = 10_000
 } = {}) {
   const started = Date.now();
@@ -129,6 +132,7 @@ async function runDirectContactProof({
       readinessScope: "direct_peer_contact",
       distributedReadinessClaimed: false
     },
+    capabilityDescriptor: createContactProofCapabilityDescriptor(),
     bootstrapNodes: [bootstrapNode],
     contactAttempted,
     contactSucceeded,
@@ -208,6 +212,8 @@ async function closeDirectContactResources({ clientRpc, clientSocket, serverRpcs
 
 export {
   CONTACT_PROOF_ARTIFACT_KIND,
+  CONTACT_PROOF_CAPABILITY,
+  CONTACT_PROOF_CAPABILITY_SCOPE,
   CONTACT_PROOF_DISPATCH_COMMAND,
   CONTACT_PROOF_METHOD,
   CONTACT_PROOF_REQUEST_ENCODING,

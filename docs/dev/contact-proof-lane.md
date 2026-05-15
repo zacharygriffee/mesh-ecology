@@ -40,11 +40,31 @@ The contact proof lane now has a narrow version-safe protocol seed:
 - `requestEncoding: "@mesh-contact/contact-proof-request"`
 - `responseEncoding: "@mesh-contact/contact-proof-response"`
 - `dispatchCommand: "@mesh-contact/capability-echo"`
+- `capabilityDescriptor.capability: "contact-proof"`
+- `capabilityDescriptor.proofScope: "bounded_direct_participant_contact"`
+- `protocolSchemaVersion: 2`
+- `dispatchVersion: 2`
 
 The request/response payloads are encoded through generated Hyperschema
-encodings, and the bounded capability echo route is registered through
-Hyperdispatch. The exported evidence remains JSON so adjacent repos can inspect
-it without importing mesh-v0-2 runtime code.
+encodings, the capability descriptor is an encoded Hyperschema object, and the
+bounded capability echo route is registered through Hyperdispatch. The exported
+evidence remains JSON so adjacent repos can inspect it without importing
+mesh-v0-2 runtime code.
+
+## Layer Defaults
+
+The same transport can mean different things at different layers:
+
+- Local layer: HyperDHT direct peer plus Protomux RPC is the preferred first
+  contact proof when an operator-owned device key is known. Hyperswarm may help
+  discover candidate peers, but direct contact is the readiness proof for this
+  lane.
+- Mesh layer: Hyperswarm remains the default discovery ecology. Direct HyperDHT
+  contact can follow discovery or claim exchange, but it does not replace
+  concern/discovery surface participation.
+
+Do not read this lane as a full mesh readiness claim. It proves a bounded
+participant-contact capability across a HyperDHT direct-peer seam.
 
 ## Evidence Shape
 
@@ -57,12 +77,27 @@ it without importing mesh-v0-2 runtime code.
   "requestEncoding": "@mesh-contact/contact-proof-request",
   "responseEncoding": "@mesh-contact/contact-proof-response",
   "dispatchCommand": "@mesh-contact/capability-echo",
+  "protocolSchemaVersion": 2,
+  "dispatchVersion": 2,
   "proofKind": "mesh_contact_direct_peer_lab",
   "transportKind": "protomux-rpc",
   "contactSeam": "hyperdht_direct_peer",
   "participantA": "mesh-contact-host",
   "participantB": "mesh-contact-client",
   "operation": "capability.echo",
+  "capabilityDescriptor": {
+    "capability": "contact-proof",
+    "methodName": "capability.echo",
+    "dispatchCommand": "@mesh-contact/capability-echo",
+    "proofScope": "bounded_direct_participant_contact",
+    "ownerRepo": "mesh-v0-2",
+    "transportKind": "protomux-rpc",
+    "contactSeam": "hyperdht_direct_peer",
+    "localLayerDefault": true,
+    "meshLayerDefault": false,
+    "discoveryRequired": false,
+    "participantContact": true
+  },
   "selectedTransport": {
     "transportKind": "protomux-rpc",
     "contactSeam": "hyperdht_direct_peer",
@@ -133,6 +168,10 @@ anything, or mutate long-lived state.
 | Hyperswarm two-transport | topic/discovery transport evidence | first-line semantic debugging |
 | HTTP/operator probes | presentation and compatibility | mesh contact proof |
 | Protomux RPC over HyperDHT | direct participant contact proof | full mesh semantic proof |
+
+Mesh-v0-2 owns the protocol semantics for this first contact proof. Adjacent
+repos may consume the JSON evidence and capability descriptor, but they should
+not fork the command names, encoding names, or contact-seam meaning locally.
 
 ## Implementation Boundary
 

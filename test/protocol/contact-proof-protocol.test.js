@@ -1,10 +1,14 @@
 import test from "brittle";
 import {
+  CONTACT_PROOF_CAPABILITY,
+  CONTACT_PROOF_CAPABILITY_SCOPE,
   CONTACT_PROOF_DISPATCH_COMMAND,
+  CONTACT_PROOF_METHOD,
   CONTACT_PROOF_REQUEST_ENCODING,
   CONTACT_PROOF_RESPONSE_ENCODING,
   CONTACT_PROTOCOL_FAMILY,
   CONTACT_PROTOCOL_SCHEMA,
+  createContactProofCapabilityDescriptor,
   decodeContactProofEvidence,
   decodeContactProofRequest,
   decodeContactProofResponse,
@@ -20,15 +24,15 @@ test("contact proof protocol encodes request response and evidence with stable m
   const request = {
     requestId: "mesh-contact-request:test",
     participant: "mesh-contact-client",
-    capability: "contact-proof",
+    capability: CONTACT_PROOF_CAPABILITY,
     input: "ping"
   };
   const encodedRequest = encodeContactProofRequest(request);
   const decodedRequest = decodeContactProofRequest(encodedRequest);
 
   t.alike(decodedRequest, request);
-  t.is(protocolVersion, 1);
-  t.is(dispatchVersion, 1);
+  t.is(protocolVersion, 2);
+  t.is(dispatchVersion, 2);
 
   const dispatched = await dispatchContactProofRequest(encodedRequest, (message) => ({
     responseId: "mesh-contact-response:test",
@@ -58,8 +62,8 @@ test("contact proof protocol encodes request response and evidence with stable m
     contactSeam: "hyperdht_direct_peer",
     participantA: "mesh-contact-host",
     participantB: "mesh-contact-client",
-    operation: "capability.echo",
-    methodName: "capability.echo",
+    operation: CONTACT_PROOF_METHOD,
+    methodName: CONTACT_PROOF_METHOD,
     requestId: request.requestId,
     responseId: decodedResponse.responseId,
     hostPublicKey: "a".repeat(64),
@@ -80,6 +84,7 @@ test("contact proof protocol encodes request response and evidence with stable m
       distributedReadinessClaimed: false,
       serviceBackendClaimed: false
     },
+    capabilityDescriptor: createContactProofCapabilityDescriptor(),
     contactAttempted: true,
     contactSucceeded: true,
     distributedReadinessClaimed: false,
@@ -91,6 +96,13 @@ test("contact proof protocol encodes request response and evidence with stable m
 
   t.is(decodedEvidence.protocolFamily, CONTACT_PROTOCOL_FAMILY);
   t.is(decodedEvidence.dispatchCommand, CONTACT_PROOF_DISPATCH_COMMAND);
+  t.is(decodedEvidence.capabilityDescriptor.capability, CONTACT_PROOF_CAPABILITY);
+  t.is(decodedEvidence.capabilityDescriptor.methodName, CONTACT_PROOF_METHOD);
+  t.is(decodedEvidence.capabilityDescriptor.proofScope, CONTACT_PROOF_CAPABILITY_SCOPE);
+  t.is(decodedEvidence.capabilityDescriptor.ownerRepo, "mesh-v0-2");
+  t.is(decodedEvidence.capabilityDescriptor.localLayerDefault, true);
+  t.is(decodedEvidence.capabilityDescriptor.meshLayerDefault, false);
+  t.is(decodedEvidence.capabilityDescriptor.discoveryRequired, false);
   t.is(decodedEvidence.selectedTransport.participantContact, true);
   t.is(decodedEvidence.readinessEvidence.distributedReadinessClaimed, false);
 });
