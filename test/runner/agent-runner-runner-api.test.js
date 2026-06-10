@@ -398,10 +398,6 @@ test("publishPub optimistic append accepted into view with dedupe and persistenc
     await safeFlush(swarmRunner);
 
     const seen = [];
-    console.log("TEST_PUB_IDS", {
-      jobKey: b4a.toString(jobKey, "hex"),
-      attempt: b4a.toString(attemptToken, "hex"),
-    });
     runner = await createRunner({
       role: "org",
       corestore: runnerStore,
@@ -426,7 +422,6 @@ test("publishPub optimistic append accepted into view with dedupe and persistenc
           cap: "cap/a",
           ref: { t: "result", k: jobKey, a: attemptToken },
         });
-        console.log("TEST_PUBLISH_CALLED");
       },
     });
 
@@ -443,11 +438,6 @@ test("publishPub optimistic append accepted into view with dedupe and persistenc
     await safeFlush(swarmHost);
     await safeFlush(swarmRunner);
     await concernHost.base.update({ wait: true }).catch(() => {});
-    console.log("EXPECT_LEAF", {
-      jobKey: b4a.toString(jobKey, "hex"),
-      fromKeyUsed: b4a.toString(runnerKey, "hex"),
-      attempt: b4a.toString(attemptToken, "hex")
-    });
     const hostLeafRunner = await hostPublishView
       .sub(jobKey)
       .sub(runnerKey)
